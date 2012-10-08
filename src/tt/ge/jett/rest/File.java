@@ -24,6 +24,14 @@ public class File {
 		return file;
 	}
 	
+	public static File create(Token token, String sharename, String filename) throws IOException {
+		Map<String, String> attributes = new HashMap<String, String>();
+		
+		attributes.put("filename", filename);
+		
+		return create(token, sharename, attributes);
+	}
+	
 	public static void destroy(Token token, String sharename, String fileid) throws IOException {
 		Helper.post(String.format("files/%s/%s/destroy", sharename, fileid), token, null, null);
 	}

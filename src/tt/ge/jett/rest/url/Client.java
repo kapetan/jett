@@ -11,11 +11,13 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class Client {
 	private static final int BUFFER_LENGTH = 65535;
 	private static final Map<String, String> defaultHeaders;
 	private static final int REDIRECT_DEPTH = 3;
+	private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 	
 	private static final ProgressListener NULL_LISTENER = new ProgressListener() {
 		@Override
@@ -55,7 +57,7 @@ public class Client {
 			url += encodedQuery.toString();
 		}
 		
-		System.out.println(method + " " + url);
+		LOGGER.fine(method + " " + url);
 		
 		URLConnection conn = new URL(url).openConnection();
 		HttpURLConnection http = (HttpURLConnection) conn;
@@ -112,8 +114,6 @@ public class Client {
 		
 		InputStream in = null;
 		
-		System.out.println("== body\n" + body);
-		
 		if(body != null) {
 			byte[] raw = body.getBytes();
 			in = new ByteArrayInputStream(raw);
@@ -121,6 +121,8 @@ public class Client {
 			headers.put("Content-Length", String.valueOf(raw.length));
 			
 			in = request(method, url, query, in, headers);
+			
+			LOGGER.finer("Body -> " + body);
 		}
 		else {
 			in = request(method, url, query, null, headers);

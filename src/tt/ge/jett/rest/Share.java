@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,20 @@ public class Share {
 	}
 	
 	public static Share create(Token token, Map<String, String> attributes) throws IOException {
-		return Helper.post("shares/create", token, null, Share.class);
+		return Helper.post("shares/create", token, attributes, Share.class);
+	}
+	
+	public static Share create(Token token, String title) throws IOException {
+		Map<String, String> attributes = new HashMap<String, String>();
+		
+		attributes.put("title", title);
+		
+		return create(token, attributes);
+	}
+	
+	public static Share create(Token token) throws IOException {
+		Map<String, String> attributes = new HashMap<String, String>();
+		return create(token, attributes);
 	}
 	
 	public static Share update(Token token, String sharename, Map<String, String> attributes) throws IOException {
@@ -104,6 +118,15 @@ public class Share {
 	
 	public File createFile(Map<String, String> attributes) throws IOException {
 		File file = File.create(user.getToken(), sharename, attributes);
+		file.setShare(this);
+		
+		files.add(0, file);
+		
+		return file;
+	}
+	
+	public File createFile(String filename) throws IOException {
+		File file = File.create(user.getToken(), sharename, filename);
 		file.setShare(this);
 		
 		files.add(0, file);

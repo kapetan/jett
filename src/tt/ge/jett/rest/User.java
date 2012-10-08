@@ -8,9 +8,9 @@ import java.util.Map;
 import tt.ge.jett.rest.url.Helper;
 
 public class User {
-	public static User login(String username, String password, String apikey) throws IOException {
+	public static User login(String email, String password, String apikey) throws IOException {
 		Map<String, String> auth = new HashMap<String, String>();
-		auth.put("username", username);
+		auth.put("email", email);
 		auth.put("password", password);
 		auth.put("apikey", apikey);
 		
@@ -113,6 +113,20 @@ public class User {
 	
 	public Share createShare(Map<String, String> attributes) throws IOException {
 		Share share = Share.create(token, attributes);
+		share.setUser(this);
+		
+		return share;
+	}
+	
+	public Share createShare(String title) throws IOException {
+		Share share = Share.create(token, title);
+		share.setUser(this);
+		
+		return share;
+	}
+	
+	public Share createShare() throws IOException {
+		Share share = Share.create(token);
 		share.setUser(this);
 		
 		return share;
