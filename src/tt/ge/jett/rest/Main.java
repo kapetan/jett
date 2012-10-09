@@ -1,5 +1,8 @@
 package tt.ge.jett.rest;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
@@ -10,6 +13,8 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+
+import javax.imageio.stream.FileImageInputStream;
 
 import tt.ge.jett.live.JsonSocket;
 import tt.ge.jett.live.Pool;
@@ -30,10 +35,18 @@ public class Main {
 		
 		User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
 		
-		Share share = user.createShare("Hello");
-		File file = share.createFile("text.txt");
+		Share share = user.getShare("8EkKhCP");
 		
-		file.write("Hello you");
+		share.uploadFile(new File("tmp/boromir.gif"));
+		
+		/*File file = share.getFile("0");
+		
+		file.download(new java.io.File("tmp/st.jpg"));*/
+		
+		/*Share share = user.createShare("Hello");
+		File file = share.createFile("rabbit.jpg");
+		
+		file.upload(new FileInputStream(new java.io.File("tmp/rabbit.jpg")));*/
 		
 		/*User user = User.login("r.0.uAdqxG7tSsP6qxLzVBXhUhJXcHGBSbL6Gck2m-" +
 				"fc.0.0.e97b008c894f064567b4e66cae9d9b271d595312");

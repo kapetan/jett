@@ -29,6 +29,14 @@ public class Client {
 		defaultHeaders.put("User-Agent", "gett-jett");
 	}
 	
+	public InputStream request(String method, String url) throws IOException {
+		return request(method, url, new HashMap<String, String>());
+	}
+	
+	public InputStream request(String method, String url, Map<String, String> query) throws IOException {
+		return request(method, url, query, null, new HashMap<String, String>());
+	}
+	
 	public InputStream request(String method, String url, Map<String, String> query, 
 			InputStream body, Map<String, String> headers) throws IOException {
 		

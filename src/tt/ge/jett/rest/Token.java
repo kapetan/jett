@@ -11,6 +11,20 @@ public class Token {
 		this.expires = expires * 1000 + System.currentTimeMillis();
 	}
 	
+	public Token(String accesstoken) {
+		this.accesstoken = accesstoken;
+		
+		String[] expires = accesstoken.split("\\.");
+		
+		if(expires.length >= 4) {
+			try {
+				this.expires = Long.parseLong(expires[3]) * 1000;
+			} catch(NumberFormatException e) {
+				this.expires = 0;
+			}
+		}
+	}
+	
 	public boolean hasExpired() {
 		return expires <= System.currentTimeMillis();
 	}

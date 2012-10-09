@@ -33,6 +33,15 @@ public class User {
 		return user;
 	}
 	
+	public static User user(String accesstoken) {
+		Token token = new Token(accesstoken);
+		User user = new User();
+		
+		user.setToken(token);
+		
+		return user;
+	}
+	
 	private String userid;
 	private String fullname;
 	private String email;

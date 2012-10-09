@@ -1,6 +1,8 @@
 package tt.ge.jett.rest;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
@@ -117,21 +119,11 @@ public class Share {
 	}
 	
 	public File createFile(Map<String, String> attributes) throws IOException {
-		File file = File.create(user.getToken(), sharename, attributes);
-		file.setShare(this);
-		
-		files.add(0, file);
-		
-		return file;
+		return addFile(File.create(user.getToken(), sharename, attributes));
 	}
 	
 	public File createFile(String filename) throws IOException {
-		File file = File.create(user.getToken(), sharename, filename);
-		file.setShare(this);
-		
-		files.add(0, file);
-		
-		return file;
+		return addFile(File.create(user.getToken(), sharename, filename));
 	}
 	
 	public void destroyFile(String fileid) throws IOException {
@@ -141,11 +133,40 @@ public class Share {
 		files.remove(file);
 	}
 	
-	public File uploadFile(String filepath) throws IOException {
-		File file = File.upload(user.getToken(), sharename, filepath);
-		file.setShare(this);
-		
-		return file;
+	public File uploadFile(String filename, InputStream in) throws IOException {
+		return addFile(File.upload(user.getToken(), sharename, filename, in));
+	}
+	
+	public File uploadFile(String filename, String in) throws IOException {
+		return addFile(File.upload(user.getToken(), sharename, filename, in));
+	}
+	
+	public File uploadFile(java.io.File file) throws IOException {
+		return addFile(File.upload(user.getToken(), sharename, file));
+	}
+	
+	public InputStream getBlobFile(String fileid) throws IOException {
+		return File.getBlob(sharename, fileid);
+	}
+	
+	public InputStream getScalledFile(String fileid, int width, int height) throws IOException {
+		return File.getScaled(sharename, fileid, width, height);
+	}
+	
+	public InputStream getThumbFile(String fileid) throws IOException {
+		return File.getThumb(sharename, fileid);
+	}
+	
+	public void downloadFile(String fileid, OutputStream out) throws IOException {
+		File.download(sharename, fileid, out);
+	}
+	
+	public void downloadFile(String fileid, java.io.File file) throws IOException {
+		File.download(sharename, fileid, file);
+	}
+	
+	public String readFile(String fileid) throws IOException {
+		return File.read(sharename, fileid);
 	}
 	
 	public void destroy() throws IOException {
@@ -159,5 +180,12 @@ public class Share {
 		this.live = share.live;
 		
 		return this;
+	}
+	
+	private File addFile(File file) {
+		file.setShare(this);
+		files.add(0, file);
+		
+		return file;
 	}
 }

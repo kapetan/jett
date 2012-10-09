@@ -36,47 +36,106 @@ public class File {
 		Helper.post(String.format("files/%s/%s/destroy", sharename, fileid), token, null, null);
 	}
 	
-	public static File upload(Token token, String sharename, String filepath) throws IOException {
-		java.io.File f = new java.io.File(filepath);
-		
+	public static File upload(Token token, String sharename, String filename, InputStream in) throws IOException {
 		Map<String, String> attributes = new HashMap<String, String>();
-		attributes.put("filename", f.getName());
+		attributes.put("filename", filename);
 		
 		File file = create(token, sharename, attributes);
 		
-		InputStream in = new FileInputStream(filepath);
-		file.write(in, f.length());
-		
-		in.close();
+		upload(file, in);
 		
 		return file;
 	}
 	
-	public static File download(String sharename, String fileid, String path) throws IOException {
-		File file = find(sharename, fileid);
+	public static File upload(Token token, String sharename, String filename, String in) throws IOException {
+		InputStream body = new ByteArrayInputStream(in.getBytes());
 		
-		java.io.File filepath = new java.io.File(path);
+		return upload(token, sharename, filename, body);
+	}
+	
+	public static File upload(Token token, String sharename, String filename, java.io.File file) throws IOException {
+		InputStream body = new FileInputStream(file);
 		
-		if(filepath.isDirectory()) {
-			filepath = new java.io.File(filepath, file.filename);
+		try {
+			return upload(token, sharename, filename, body);
+		} finally {
+			try {
+				body.close();
+			} catch(IOException e) {}
+		}
+	}
+	
+	public static File upload(Token token, String sharename, java.io.File file) throws IOException {
+		return upload(token, sharename, file.getName(), file);
+	}
+	
+	public static InputStream getBlob(String sharename, String fileid) throws IOException {
+		return Helper.URL_CLIENT.request("GET", 
+				Helper.apiUrl("files/%s/%s/blob", sharename, fileid));
+	}
+	
+	public static InputStream getScaled(String sharename, String fileid, int width, int height) throws IOException {
+		return Helper.URL_CLIENT.request("GET", 
+				Helper.apiUrl("files/%s/%s/blob/%sx%s", sharename, 
+						fileid, String.valueOf(width), String.valueOf(height)));
+	}
+	
+	public static InputStream getThumb(String sharename, String fileid) throws IOException {
+		return Helper.URL_CLIENT.request("GET", 
+				Helper.apiUrl("files/%s/%s/blob/thumb", sharename, fileid));
+	}
+	
+	public static void download(String sharename, String fileid, OutputStream out) throws IOException {
+		InputStream in = getBlob(sharename, fileid);
+		
+		try {
+			byte[] buffer = new byte[65535];
+			int read = 0;
+			
+			while((read = in.read(buffer)) > 0) {
+				out.write(buffer, 0, read);
+			}
+		} finally {
+			try {
+				in.close();
+			} catch(IOException e) {}
+		}
+	}
+	
+	public static void download(String sharename, String fileid, java.io.File file) throws IOException {
+		OutputStream out = new FileOutputStream(file);
+		
+		try {
+			download(sharename, fileid, out);
+		} finally {
+			try {
+				out.close();
+			} catch(IOException e) {}
+		}
+	}
+	
+	public static String read(String sharename, String fileid) throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		download(sharename, fileid, out);
+		
+		return new String(out.toByteArray(), "UTF-8");
+	}
+	
+	private static void upload(File file, InputStream in) throws IOException {
+		Upload upload = file.getUpload();
+		
+		if(upload == null) {
+			upload = file.refreshUpload();
 		}
 		
-		OutputStream out = new FileOutputStream(filepath);
-		InputStream in = file.getBlob();
+		file.readystate = ReadyState.UPLOADING;
 		
-		byte[] buffer = new byte[65535];
-		int read = 0;
-		
-		while((read = in.read(buffer)) > 0) {
-			out.write(buffer, 0, read);
-		}
-		
-		out.flush();
-		out.close();
+		in = Helper.URL_CLIENT.request("PUT", upload.getPuturl(), 
+				new HashMap<String, String>(), in, new HashMap<String, String>());
 		
 		in.close();
 		
-		return file;
+		file.readystate = ReadyState.UPLOADED;
 	}
 	
 	private String fileid;
@@ -143,99 +202,51 @@ public class File {
 	}
 	
 	public Upload getUpload() {
-		/*if(upload ==  null) {
-			upload = Upload.get(share.getUser().getToken(), sharename, fileid);
-		}*/
-		
 		return upload;
 	}
 	
-	public InputStream getThumb() throws IOException {
-		if(readystate == ReadyState.UPLOADED) {
-			Map<String, String> empty = new HashMap<String, String>();
-			
-			return Helper.URL_CLIENT.request("GET", 
-					Helper.apiUrl("files/%s/%s/blob/thumb", sharename, fileid), empty, null, empty);
-		}
-		else {
-			throw new IllegalStateException("File must be uploaded, can't retrieve thumb");
-		}
+	public void upload(InputStream in) throws IOException {
+		upload(this, in);
 	}
 	
-	public InputStream getScaled(int width, int height) throws IOException {
-		if(readystate == ReadyState.UPLOADED) {
-			Map<String, String> empty = new HashMap<String, String>();
-			Map<String, String> query = new HashMap<String, String>();
-			query.put("size", String.format("%sx%s", width, height));
-			
-			return Helper.URL_CLIENT.request("GET", 
-					Helper.apiUrl("files/%s/%s/blob/scale", sharename, fileid), query, null, empty);
-		}
-		else {
-			throw new IllegalStateException("File must be uploaded, can't retrieve thumb");
+	public void upload(String in) throws IOException {
+		upload(this, new ByteArrayInputStream(in.getBytes()));
+	}
+	
+	public void upload(java.io.File file) throws IOException {
+		InputStream in = new FileInputStream(file);
+		
+		try {
+			upload(this, in);
+		} finally {
+			try {
+				in.close();
+			} catch(IOException e) {}
 		}
 	}
 	
 	public InputStream getBlob() throws IOException {
-		if((readystate == ReadyState.UPLOADED || readystate == ReadyState.UPLOADING) || 
-				(readystate == ReadyState.REMOTE && share.isLive())) {
-			
-			Map<String, String> query = new HashMap<String, String>();
-			Map<String, String> headers = new HashMap<String, String>();
-			
-			return Helper.URL_CLIENT.request("GET", 
-					Helper.apiUrl("files/%s/%s/blob", sharename, fileid), query, null, headers);
-		}
-		else {
-			throw new IllegalStateException("Wrong state, can't retrieve blob");
-		}
+		return getBlob(sharename, fileid);
+	}
+	
+	public InputStream getScaled(int width, int height) throws IOException {
+		return getScaled(sharename, fileid, width, height);
+	}
+	
+	public void download(OutputStream out) throws IOException {
+		download(sharename, fileid, out);
+	}
+	
+	public void download(java.io.File file) throws IOException {
+		download(sharename, fileid, file);
 	}
 	
 	public String read() throws IOException {
-		InputStream in = getBlob();
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		
-		byte[] buffer = new byte[65535];
-		int read = 0;
-		
-		while((read = in.read(buffer)) > 0) {
-			out.write(buffer, 0, read);
-		}
-		
-		in.close();
-		
-		return new String(out.toByteArray(), "UTF-8");
+		return read(sharename, fileid);
 	}
 	
-	public void download(String path) throws IOException {
-		File.download(sharename, fileid, path);
-	}
-	
-	public void write(InputStream in, long contentLength) throws IOException {
-		Upload upload = this.upload;
-		
-		if(upload == null) {
-			upload = refreshUpload();
-		}
-		
-		Map<String, String> headers = new HashMap<String, String>();
-		headers.put("Content-Length", String.valueOf(contentLength));
-		
-		readystate = ReadyState.UPLOADING;
-		
-		in = Helper.URL_CLIENT.request("PUT", 
-				upload.getPuturl(), new HashMap<String, String>(), in, headers);
-		
-		in.close();
-		
-		readystate = ReadyState.UPLOADED;
-	}
-	
-	public void write(String str) throws IOException {
-		byte[] body = str.getBytes();
-		ByteArrayInputStream in = new ByteArrayInputStream(body);
-		
-		write(in, body.length);
+	public InputStream getThumb() throws IOException {
+		return getThumb(sharename, fileid);
 	}
 	
 	public void destroy() throws IOException {
