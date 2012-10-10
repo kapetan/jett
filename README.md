@@ -2,6 +2,10 @@
 
 A Java wrapper for the Ge.tt API. Developed and tested using Java 6. This library exposes all documented API actions. You can find the documentation here [https://open.ge.tt/1/doc][api].
 
+# Dependencies
+
+The library uses Googles JSON library [Gson][gson] for JSON parsing and serialization. It needs to be added to the classpath.
+
 # Usage
 
 The REST API can be accessed using the `tt.ge.jett.rest.User` class. With an instance of this class, shares and files can be fetched, created and destroyed.
@@ -53,3 +57,4 @@ api.run();
 ```
 
 [api]:https://open.ge.tt/1/doc "Ge.tt API documentation"
+[gson]:http://code.google.com/p/google-gson/ "GSON"
