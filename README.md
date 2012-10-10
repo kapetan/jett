@@ -16,7 +16,7 @@ File file = share.createFile("filename.txt");
 file.upload("Upload a simple text file containing this string.");
 ```
 
-It is also possible to download an uploaded file.
+It is also possible to download an upload files.
 
 ```Java
 // The login method is overloaded. Login using a refreshtoken.
@@ -41,7 +41,7 @@ Api api = new Api();
 api.addMessageListener(new MessageListener.Adapter() {
 	@Override
 	public void download(String sharename, String fileid, String filename) {
-		console.log("File downloaded " + filename);
+		System.out.println("File downloaded " + filename);
 	}
 });
 
