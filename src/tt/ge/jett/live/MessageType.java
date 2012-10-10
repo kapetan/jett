@@ -1,6 +1,6 @@
 package tt.ge.jett.live;
 
-public enum EventType {
+public enum MessageType {
 	DOWNLOAD,
 	STORAGELIMIT,
 	VIOLATEDTERMS,

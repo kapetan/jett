@@ -19,20 +19,20 @@ public class Pool extends Thread {
 	
 	private static int STOP_ACTION = 0;
 	
-	private BlockingQueue<Message> messageQueue = new PriorityBlockingQueue<Message>();
+	private BlockingQueue<Notification> messageQueue = new PriorityBlockingQueue<Notification>();
 	
 	private List<Uploader> pool = new ArrayList<Uploader>();
 	private List<Uploader> uploading = new ArrayList<Uploader>();
 	
-	private EventNotifier notifier;
+	private Api notifier;
 	
 	public Pool(Token token) throws IOException {
 		this(token.getAccesstoken());
 	}
 	
 	public Pool(String accesstoken) throws IOException {
-		notifier = new EventNotifier();
-		notifier.addNotficationListener(new PoolNotificationListener(this));
+		notifier = new Api();
+		notifier.addMessageListener(new PoolMessageListener(this));
 		
 		notifier.connect(accesstoken);
 		
@@ -40,7 +40,7 @@ public class Pool extends Thread {
 	}
 	
 	public void add(String filename, File file) {
-		Message msg = Message.add();
+		Notification msg = Notification.add();
 		msg.put("file", file);
 		msg.put("filename", file);
 		
@@ -52,7 +52,7 @@ public class Pool extends Thread {
 	}
 	
 	public void event(FileEvent type, File file, Object extra) {
-		Message msg = Message.event();
+		Notification msg = Notification.event();
 		msg.put("type", type);
 		msg.put("file", file);
 		msg.put("extra", extra);
@@ -61,7 +61,7 @@ public class Pool extends Thread {
 	}
 	
 	public void download(String sharename, String fileid) {
-		Message msg = Message.download();
+		Notification msg = Notification.download();
 		msg.put("sharename", sharename);
 		msg.put("fileid", fileid);
 		
@@ -76,7 +76,7 @@ public class Pool extends Thread {
 	public void run() {
 		try {
 			while(true) {
-				Message msg = messageQueue.take();
+				Notification msg = messageQueue.take();
 				System.out.println(msg);
 				
 				switch(msg.getType()) {
@@ -109,7 +109,7 @@ public class Pool extends Thread {
 		System.out.println("Should not be here");
 	}
 	
-	public void message(Message msg) {
+	public void message(Notification msg) {
 		try {
 			messageQueue.put(msg);
 		} catch (InterruptedException e) {}

@@ -16,7 +16,9 @@ import java.util.logging.SimpleFormatter;
 
 import javax.imageio.stream.FileImageInputStream;
 
+import tt.ge.jett.live.Api;
 import tt.ge.jett.live.JsonSocket;
+import tt.ge.jett.live.MessageListener;
 import tt.ge.jett.live.Pool;
 import tt.ge.jett.rest.url.Client;
 
@@ -35,9 +37,23 @@ public class Main {
 		
 		User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
 		
-		Share share = user.getShare("8EkKhCP");
+		Api api = new Api();
 		
-		share.uploadFile(new File("tmp/boromir.gif"));
+		api.addMessageListener(new MessageListener.Adapter() {
+
+			@Override
+			public void download(String sharename, String fileid,
+					String filename) {
+				System.out.println("Donwload " + sharename + " " + filename);
+			}
+		});
+		
+		api.connect(user);
+		api.run();
+		
+		/*Share share = user.getShare("8EkKhCP");
+		
+		share.uploadFile(new File("tmp/boromir.gif"));*/
 		
 		/*File file = share.getFile("0");
 		

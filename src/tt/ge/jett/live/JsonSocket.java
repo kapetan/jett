@@ -4,16 +4,25 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
+import java.util.logging.Logger;
 
-import javax.net.ssl.SSLSocket;
+import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.gson.Gson;
 
 public class JsonSocket {
+	private static final Logger LOGGER = Logger.getLogger(JsonSocket.class.getName());
+	
+	private static String escape(String message) {
+		return message.replaceAll("\\n", "\\\\n").replaceAll("\\r", "\\\\r");
+	}
+	
 	private Gson gson = new Gson();
 	
-	private SSLSocket socket;
+	private SocketFactory factory;
+	private Socket socket;
 	private OutputStream out;
 	private InputStream in;
 	
@@ -21,12 +30,22 @@ public class JsonSocket {
 	private int port;
 	
 	public JsonSocket(String host, int port) {
+		this(host, port, true);
+	}
+	
+	public JsonSocket(String host, int port, boolean ssl) {
 		this.host = host;
 		this.port = port;
+		
+		if(ssl) {
+			factory = SSLSocketFactory.getDefault();
+		} else {
+			factory = SocketFactory.getDefault();
+		}
 	}
 	
 	public void connect() throws IOException {
-		socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket(host, port);
+		socket = factory.createSocket(host, port);
 		out = socket.getOutputStream();
 		in = socket.getInputStream();
 		
@@ -49,13 +68,9 @@ public class JsonSocket {
 	public String receive() throws IOException {
 		String response = read("\n");
 		
-		System.out.println("####\n" + response);
-		
 		while(response.equals("ping")) {
 			send("pong");
 			response = read("\n");
-			
-			System.out.println("####\n" + response);
 		}
 		
 		return response;
@@ -73,7 +88,7 @@ public class JsonSocket {
 		out.write(message.getBytes());
 		out.flush();
 		
-		System.out.println("----\n" + message);
+		LOGGER.finer("Write -> " + escape(message));
 	}
 	
 	private String read(String terminator) throws IOException {
@@ -85,16 +100,24 @@ public class JsonSocket {
 		while((read = in.read(buffer)) > 0) {
 			message.write(buffer, 0, read);
 			
-			System.out.println("-> read = " + read + ", message.size() = " + message.size());
+			LOGGER.finest("Read from socket: read = " + read + ", total_size = " + message.size());
 			
 			if(terminated(buffer, read, term)) {
 				break;
 			}
 		}
 		
-		System.out.println("-> " + new String(message.toByteArray(), "UTF-8"));
+		if(read <= 0 || message.size() < term.length) {
+			LOGGER.severe("Unexpected EOF: read = " + read + ", total_size = " + message.size());
+			
+			throw new IOException("Unexpected EOF");
+		}
 		
-		return new String(message.toByteArray(), 0, message.size() - term.length, "UTF-8");
+		String result = new String(message.toByteArray(), 0, message.size() - term.length, "UTF-8");
+		
+		LOGGER.finer("Read -> " + escape(result));
+		
+		return result;
 	}
 	
 	private boolean terminated(byte[] buffer, int read, byte[] term) {

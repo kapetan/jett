@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+
+import tt.ge.jett.rest.User;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -15,7 +18,8 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-public class EventNotifier extends Thread {
+public class Api extends Thread {
+	private static final Logger LOGGER = Logger.getLogger(Api.class.getName());
 	private static final String HOST = "open.ge.tt";
 	private static final int PORT = 443;
 	
@@ -30,22 +34,24 @@ public class EventNotifier extends Thread {
 	
 	private volatile boolean run = true;
 	
-	private List<NotificationListener> listeners = new ArrayList<NotificationListener>();
+	private List<MessageListener> listeners = new ArrayList<MessageListener>();
 	
 	public void connect(String accesstoken, String session) throws IOException {
 		socket = new JsonSocket(HOST, PORT);
-		socket.setGson(new GsonBuilder().registerTypeAdapter(EventType.class, 
-			new JsonDeserializer<EventType>() {
+		socket.setGson(new GsonBuilder().registerTypeAdapter(MessageType.class, 
+			new JsonDeserializer<MessageType>() {
 				@Override
-				public EventType deserialize(JsonElement json, Type arg1,
+				public MessageType deserialize(JsonElement json, Type arg1,
 						JsonDeserializationContext arg2) throws JsonParseException {
 					
 					String eventType = json.getAsJsonPrimitive().getAsString();
-					return EventType.valueOf(eventType.toUpperCase());
+					return MessageType.valueOf(eventType.toUpperCase());
 				}
 		}).create());
 		
 		socket.connect();
+		
+		LOGGER.finer("Opening JsonSocket");
 		
 		this.session = session;
 		
@@ -59,8 +65,16 @@ public class EventNotifier extends Thread {
 		this.start();
 	}
 	
+	public void connect(User user, String session) throws IOException {
+		connect(user.getToken().getAccesstoken(), session);
+	}
+	
 	public void connect(String accesstoken) throws IOException {
 		connect(accesstoken, generateSession());
+	}
+	
+	public void connect(User user) throws IOException {
+		connect(user.getToken().getAccesstoken());
 	}
 	
 	public void close() {
@@ -75,46 +89,50 @@ public class EventNotifier extends Thread {
 		return session;
 	}
 	
-	public void addNotficationListener(NotificationListener listener) {
+	public void addMessageListener(MessageListener listener) {
 		listeners.add(listener);
+	}
+	
+	public void removeMessageListener(MessageListener listener) {
+		listeners.remove(listener);
 	}
 	
 	@Override
 	public void run() {
 		try {
 			while(run) {
-				Notification msg = socket.receiveJson(Notification.class);
+				Message msg = socket.receiveJson(Message.class);
 				
-				System.out.println("Message " + msg);
+				LOGGER.fine("Message received");
 				
 				switch(msg.type) {
 				case DOWNLOAD:
-					for(NotificationListener l : listeners) {
+					for(MessageListener l : listeners) {
 						l.download(msg.sharename, msg.fileid, msg.filename);
 					}
 					
 					break;
 				case FILESTAT:
-					for(NotificationListener l : listeners) {
+					for(MessageListener l : listeners) {
 						l.filestat(msg.sharename, msg.fileid, msg.filename, msg.size);
 					}
 					
 					break;
 				case STORAGELIMIT:
-					for(NotificationListener l : listeners) {
+					for(MessageListener l : listeners) {
 						l.storagelimit(msg.sharename, msg.fileid, msg.filename);
 					}
 					
 					break;
 				case VIOLATEDTERMS:
-					for(NotificationListener l : listeners) {
+					for(MessageListener l : listeners) {
 						l.violatedterms(msg.sharename, msg.fileid, msg.filename, msg.reason);
 					}
 				}
 			}
 		}
 		catch(IOException e) {
-			for(NotificationListener l : listeners) {
+			for(MessageListener l : listeners) {
 				l.error(e);
 			}
 		}
