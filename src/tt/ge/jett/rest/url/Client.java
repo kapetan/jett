@@ -19,11 +19,6 @@ public class Client {
 	private static final int REDIRECT_DEPTH = 3;
 	private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 	
-	private static final ProgressListener NULL_LISTENER = new ProgressListener() {
-		@Override
-		public void progress(long progress) {}
-	};
-	
 	static {
 		defaultHeaders = new HashMap<String, String>();
 		defaultHeaders.put("User-Agent", "gett-jett");
@@ -38,19 +33,19 @@ public class Client {
 	}
 	
 	public InputStream request(String method, String url, Map<String, String> query, 
+			InputStream body) throws IOException {
+		
+		return request(method, url, query, body, new HashMap<String, String>());
+	}
+	
+	public InputStream request(String method, String url, Map<String, String> query, 
 			InputStream body, Map<String, String> headers) throws IOException {
 		
-		return request(method, url, query, body, headers, REDIRECT_DEPTH, NULL_LISTENER);
+		return request(method, url, query, body, headers, REDIRECT_DEPTH);
 	}
 	
 	public InputStream request(String method, String url, Map<String, String> query, 
-			InputStream body, Map<String, String> headers, ProgressListener listener) throws IOException {
-		
-		return request(method, url, query, body, headers, REDIRECT_DEPTH, listener);
-	}
-	
-	public InputStream request(String method, String url, Map<String, String> query, 
-			InputStream body, Map<String, String> headers, int followed, ProgressListener listener) throws IOException {
+			InputStream body, Map<String, String> headers, int followed) throws IOException {
 		
 		StringBuilder encodedQuery = new StringBuilder();
 		
@@ -91,7 +86,6 @@ public class Client {
 				out.write(buffer, 0, read);
 				
 				total += read;
-				listener.progress(total);
 			}
 			
 			out.flush();
@@ -103,7 +97,7 @@ public class Client {
 		if(300 <= status && status <= 303 || status == 307) {
 			if(followed > 0) {
 				Map<String, String> empty = new HashMap<String, String>();
-				return request("GET", http.getHeaderField("Location"), empty, null, empty, followed - 1, NULL_LISTENER);
+				return request("GET", http.getHeaderField("Location"), empty, null, empty, followed - 1);
 			}
 			else {
 				throw new IOException("Too many redirects");

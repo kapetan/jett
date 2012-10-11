@@ -1,6 +1,5 @@
 package tt.ge.jett.rest;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import tt.ge.jett.live.JsonSocket;
 import tt.ge.jett.live.MessageListener;
 import tt.ge.jett.live.Pool;
 import tt.ge.jett.rest.url.Client;
+import tt.ge.jett.rest.url.ProgressListener;
 
 public class Main {
 	
@@ -37,7 +37,7 @@ public class Main {
 		
 		User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
 		
-		Api api = new Api();
+		/*Api api = new Api();
 		
 		api.addMessageListener(new MessageListener.Adapter() {
 
@@ -49,7 +49,7 @@ public class Main {
 		});
 		
 		api.connect(user);
-		api.run();
+		api.run();*/
 		
 		/*Share share = user.getShare("8EkKhCP");
 		
@@ -59,10 +59,30 @@ public class Main {
 		
 		file.download(new java.io.File("tmp/st.jpg"));*/
 		
-		/*Share share = user.createShare("Hello");
-		File file = share.createFile("rabbit.jpg");
+		Share share = user.createShare("Hello");
+		/*File file = share.createFile("a.txt");
 		
-		file.upload(new FileInputStream(new java.io.File("tmp/rabbit.jpg")));*/
+		file.upload("hello you!");*/
+		File file = share.createFile("mastodon.mp3");
+		
+		file.addProgressListener(new ProgressListener.Adapter() {
+			@Override
+			public void start() {
+				System.out.println("Started");
+			}
+
+			@Override
+			public void end() {
+				System.out.println("Ended");
+			}
+
+			@Override
+			public void progress(long progress, int percent) {
+				System.out.println("Progress " + progress + " - " + percent);
+			}
+		});
+		
+		file.upload(new java.io.File("tmp/mastodon.mp3"));
 		
 		/*User user = User.login("r.0.uAdqxG7tSsP6qxLzVBXhUhJXcHGBSbL6Gck2m-" +
 				"fc.0.0.e97b008c894f064567b4e66cae9d9b271d595312");

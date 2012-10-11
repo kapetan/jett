@@ -65,8 +65,8 @@ public class Uploader extends Thread {
 			
 			pool.event(Pool.FileEvent.UPLOADING, this.file, 0);
 			
-			resp = Helper.URL_CLIENT.request("PUT", upload.getPuturl(), 
-					new HashMap<String, String>(), in, headers, listener);
+			//resp = Helper.URL_CLIENT.request("PUT", upload.getPuturl(), 
+			//		new HashMap<String, String>(), in, headers, listener);
 			
 			finished = true;
 			
@@ -90,7 +90,7 @@ public class Uploader extends Thread {
 		}
 	}
 	
-	class LiveProgressListner implements ProgressListener {
+	class LiveProgressListner extends ProgressListener.Adapter {
 		private long total;
 		private int current = 0;
 		
@@ -104,7 +104,7 @@ public class Uploader extends Thread {
 		}
 		
 		@Override
-		public void progress(long progress) {
+		public void progress(long progress, int percent) {
 			int currentProgres = (int) Math.floor(100.0 * progress / total);
 			
 			if(currentProgres > current) {
