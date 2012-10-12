@@ -11,9 +11,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import tt.ge.jett.rest.progress.CompositeProgressListener;
+import tt.ge.jett.rest.progress.ProgressInputStream;
+import tt.ge.jett.rest.progress.ProgressListener;
 import tt.ge.jett.rest.url.Helper;
-import tt.ge.jett.rest.url.ProgressInputStream;
-import tt.ge.jett.rest.url.ProgressListener;
 
 public class File {
 	public static File find(String sharename, String fileid) throws IOException {
@@ -150,8 +151,8 @@ public class File {
 	private Upload upload;
 	
 	private transient Share share;
-	private transient ProgressListener.Composite listener = 
-		new ProgressListener.Composite();
+	private transient CompositeProgressListener listener = 
+		new CompositeProgressListener();
 	
 	@Override
 	public boolean equals(Object other) {
@@ -209,11 +210,11 @@ public class File {
 		return upload;
 	}
 	
-	public void addProgressListener(ProgressListener listener) {
+	public void addUploadProgressListener(ProgressListener listener) {
 		this.listener.addProgressListener(listener);
 	}
 	
-	public void removeProgressListener(ProgressListener listener) {
+	public void removeUploadProgressListener(ProgressListener listener) {
 		this.listener.removeProgressListener(listener);
 	}
 	

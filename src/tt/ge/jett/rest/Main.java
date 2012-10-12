@@ -19,8 +19,9 @@ import tt.ge.jett.live.Api;
 import tt.ge.jett.live.JsonSocket;
 import tt.ge.jett.live.MessageListener;
 import tt.ge.jett.live.Pool;
+import tt.ge.jett.rest.progress.ProgressListener;
+import tt.ge.jett.rest.progress.ProgressListenerAdapter;
 import tt.ge.jett.rest.url.Client;
-import tt.ge.jett.rest.url.ProgressListener;
 
 public class Main {
 	
@@ -65,7 +66,7 @@ public class Main {
 		file.upload("hello you!");*/
 		File file = share.createFile("mastodon.mp3");
 		
-		file.addProgressListener(new ProgressListener.Adapter() {
+		file.addUploadProgressListener(new ProgressListenerAdapter() {
 			@Override
 			public void start() {
 				System.out.println("Started");

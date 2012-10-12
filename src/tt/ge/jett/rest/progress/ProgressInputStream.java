@@ -1,4 +1,4 @@
-package tt.ge.jett.rest.url;
+package tt.ge.jett.rest.progress;
 
 import java.io.IOException;
 import java.io.InputStream;

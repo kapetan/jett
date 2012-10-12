@@ -8,8 +8,9 @@ import java.util.Map;
 
 import tt.ge.jett.rest.File;
 import tt.ge.jett.rest.Upload;
+import tt.ge.jett.rest.progress.ProgressListener;
+import tt.ge.jett.rest.progress.ProgressListenerAdapter;
 import tt.ge.jett.rest.url.Helper;
-import tt.ge.jett.rest.url.ProgressListener;
 
 public class Uploader extends Thread {
 	private File file;
@@ -90,7 +91,7 @@ public class Uploader extends Thread {
 		}
 	}
 	
-	class LiveProgressListner extends ProgressListener.Adapter {
+	class LiveProgressListner extends ProgressListenerAdapter {
 		private long total;
 		private int current = 0;
 		
