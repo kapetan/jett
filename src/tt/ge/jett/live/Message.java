@@ -7,4 +7,5 @@ public class Message {
 	public String filename;
 	public int size;
 	public String reason;
+	public boolean increment;
 }

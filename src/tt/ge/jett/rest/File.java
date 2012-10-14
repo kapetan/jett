@@ -163,11 +163,40 @@ public class File {
 	private String getturl;
 	private Upload upload;
 	
+	private transient volatile int uploadProgress;
 	private transient Share share;
 	//private transient CompositeProgressListener listener = 
 	//	new CompositeProgressListener();
 	private transient List<FileListener> listeners =
 		new ArrayList<FileListener>();
+	
+	public File() {
+		uploadProgress = readystate == ReadyState.UPLOADED ? 100 : 0;
+		
+		addListener(new FileListener.Adapter() {
+			@Override
+			public void download() {
+				downloads++;
+			}
+
+			@Override
+			public void uploadStart() {
+				uploadProgress = 0;
+			}
+
+			@Override
+			public void uploadProgress(long progress, int percent) {
+				if(percent != ProgressListener.INDETERMINATE) {
+					uploadProgress = percent;
+				}
+			}
+
+			@Override
+			public void uploadEnd() {
+				uploadProgress = 100;
+			}
+		});
+	}
 	
 	@Override
 	public boolean equals(Object other) {
@@ -237,6 +266,10 @@ public class File {
 	
 	public FileType getFileType() {
 		return FileType.getType(filename);
+	}
+	
+	public int getUploadProgress() {
+		return uploadProgress;
 	}
 	
 	public void addListener(FileListener listener) {

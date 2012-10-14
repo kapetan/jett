@@ -111,6 +111,12 @@ public class Pool {
 		}
 	}
 	
+	public List<File> getFiles() {
+		synchronized(cache) {
+			return new ArrayList<File>(cache.values());
+		}
+	}
+	
 	public void close() {
 		LOGGER.info("Shutingdown Pool");
 		
