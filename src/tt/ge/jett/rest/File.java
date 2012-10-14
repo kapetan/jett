@@ -235,6 +235,10 @@ public class File {
 		return upload;
 	}
 	
+	public FileType getFileType() {
+		return FileType.getType(filename);
+	}
+	
 	public void addListener(FileListener listener) {
 		synchronized (listeners) {
 			listeners.add(listener);	
