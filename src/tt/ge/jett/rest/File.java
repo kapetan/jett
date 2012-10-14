@@ -7,11 +7,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import tt.ge.jett.rest.progress.CompositeProgressListener;
+import tt.ge.jett.live.FileListener;
+import tt.ge.jett.live.Pool;
+import tt.ge.jett.live.PoolProgressListener;
+import tt.ge.jett.live.UploadTask;
 import tt.ge.jett.rest.progress.ProgressInputStream;
 import tt.ge.jett.rest.progress.ProgressListener;
 import tt.ge.jett.rest.url.Helper;
@@ -40,27 +45,30 @@ public class File {
 	}
 	
 	public static File upload(Token token, String sharename, String filename, InputStream in) throws IOException {
-		Map<String, String> attributes = new HashMap<String, String>();
-		attributes.put("filename", filename);
-		
-		File file = create(token, sharename, attributes);
-		
-		upload(file, in);
+		File file = create(token, sharename, filename);
+		upload(file, in, UNKNOWN_LENGTH);
 		
 		return file;
 	}
 	
 	public static File upload(Token token, String sharename, String filename, String in) throws IOException {
-		InputStream body = new ByteArrayInputStream(in.getBytes());
+		byte[] str = in.getBytes();
+		InputStream body = new ByteArrayInputStream(str);
+		File file = create(token, sharename, filename);
 		
-		return upload(token, sharename, filename, body);
+		upload(file, body, str.length);
+		
+		return file;
 	}
 	
 	public static File upload(Token token, String sharename, String filename, java.io.File file) throws IOException {
 		InputStream body = new FileInputStream(file);
+		File f = create(token, sharename, filename);
 		
 		try {
-			return upload(token, sharename, filename, body);
+			upload(f, body, file.length());
+			
+			return f;
 		} finally {
 			try {
 				body.close();
@@ -124,17 +132,23 @@ public class File {
 		return new String(out.toByteArray(), "UTF-8");
 	}
 	
-	private static void upload(File file, InputStream in) throws IOException {
+	private static final int UNKNOWN_LENGTH = -1;
+	
+	private static void upload(File file, InputStream in, long length) throws IOException {
 		Upload upload = file.getUpload();
+		Map<String, String> headers = new HashMap<String, String>();
 		
 		if(upload == null) {
 			upload = file.refreshUpload();
+		}
+		if(length >= 0) {
+			headers.put("Content-Length", String.valueOf(length));
 		}
 		
 		file.readystate = ReadyState.UPLOADING;
 		
 		in = Helper.URL_CLIENT.request("PUT", upload.getPuturl(), 
-				new HashMap<String, String>(), in, new HashMap<String, String>());
+				new HashMap<String, String>(), in, headers);
 		
 		in.close();
 		
@@ -151,8 +165,10 @@ public class File {
 	private Upload upload;
 	
 	private transient Share share;
-	private transient CompositeProgressListener listener = 
-		new CompositeProgressListener();
+	//private transient CompositeProgressListener listener = 
+	//	new CompositeProgressListener();
+	private transient List<FileListener> listeners =
+		new ArrayList<FileListener>();
 	
 	@Override
 	public boolean equals(Object other) {
@@ -169,6 +185,10 @@ public class File {
 		return Helper.GSON.toJson(this);
 	}
 	
+	public User getUser() {
+		return share.getUser();
+	}
+	
 	public Share getShare() {
 		return share;
 	}
@@ -176,6 +196,12 @@ public class File {
 	public void setShare(Share share) {
 		this.sharename = share.getSharename();
 		this.share = share;
+		
+		Pool pool = share.getUser().getPool();
+		
+		if(pool != null) {
+			pool.addFile(this);
+		}
 	}
 
 	public String getFileid() {
@@ -210,16 +236,32 @@ public class File {
 		return upload;
 	}
 	
-	public void addUploadProgressListener(ProgressListener listener) {
+	public void addListener(FileListener listener) {
+		synchronized (listeners) {
+			listeners.add(listener);	
+		}
+	}
+	
+	public void removeListener(FileListener listener) {
+		synchronized (listeners) {
+			listeners.remove(listener);
+		}
+	}
+	
+	public List<FileListener> getListeners() {
+		return listeners;
+	}
+	
+	/*public void addUploadProgressListener(ProgressListener listener) {
 		this.listener.addProgressListener(listener);
 	}
 	
 	public void removeUploadProgressListener(ProgressListener listener) {
 		this.listener.removeProgressListener(listener);
-	}
+	}*/
 	
-	public void upload(InputStream in) throws IOException {
-		upload(this, new ProgressInputStream(in, listener));
+	/*public void upload(InputStream in) throws IOException {
+		upload(this, new ProgressInputStream(in, listener), UNKNOWN_LENGTH);
 	}
 	
 	public void upload(String in) throws IOException {
@@ -227,7 +269,7 @@ public class File {
 		InputStream stream = new ByteArrayInputStream(str);
 		stream = new ProgressInputStream(stream, listener, str.length);
 		
-		upload(this, stream);
+		upload(this, stream, str.length);
 	}
 	
 	public void upload(java.io.File file) throws IOException {
@@ -235,12 +277,60 @@ public class File {
 		in = new ProgressInputStream(in, listener, file.length());
 		
 		try {
-			upload(this, in);
+			upload(this, in, file.length());
 		} finally {
 			try {
 				in.close();
 			} catch(IOException e) {}
 		}
+	}*/
+	
+	public void upload(final InputStream in) throws IOException {
+		Pool pool = getPool();
+		
+		if(pool == null) {
+			uploadInputStream(in);
+			return;
+		}
+		
+		pool.addUploadTask(new UploadTask(this) {
+			@Override
+			public void deferredUpload() throws IOException {
+				uploadInputStream(in);
+			}
+		});
+	}
+	
+	public void upload(final String in) throws IOException {
+		Pool pool = getPool();
+		
+		if(pool == null) {
+			uploadString(in);
+			return;
+		}
+		
+		pool.addUploadTask(new UploadTask(this) {
+			@Override
+			public void deferredUpload() throws IOException {
+				uploadString(in);
+			}
+		});
+	}
+	
+	public void upload(final java.io.File file) throws IOException {
+		Pool pool = getPool();
+		
+		if(pool == null) {
+			uploadFile(file);
+			return;
+		}
+		
+		pool.addUploadTask(new UploadTask(this) {
+			@Override
+			public void deferredUpload() throws IOException {
+				uploadFile(file);
+			}
+		});
 	}
 	
 	public InputStream getBlob() throws IOException {
@@ -274,5 +364,43 @@ public class File {
 	public Upload refreshUpload() throws IOException {
 		upload = Upload.get(share.getUser().getToken(), sharename, fileid);
 		return upload;
+	}
+	
+	private void uploadInputStream(InputStream in) throws IOException {
+		upload(this, new ProgressInputStream(in, getProgressListener()), UNKNOWN_LENGTH);
+	}
+
+	private void uploadString(String in) throws IOException {
+		byte[] str = in.getBytes();
+		InputStream stream = new ByteArrayInputStream(str);
+		stream = new ProgressInputStream(stream, getProgressListener(), str.length);
+		
+		upload(this, stream, str.length);
+	}
+	
+	private void uploadFile(java.io.File file) throws IOException {
+		InputStream in = new FileInputStream(file);
+		in = new ProgressInputStream(in, getProgressListener(), file.length());
+		
+		try {
+			upload(this, in, file.length());
+		} finally {
+			try {
+				in.close();
+			} catch(IOException e) {}
+		}
+	}
+	
+	private ProgressListener getProgressListener() {
+		Pool pool = getPool();
+		
+		return pool ==  null ? new FileProgressListener(this) : 
+			new PoolProgressListener(this, pool);
+	}
+	
+	private Pool getPool() {
+		User user = getUser();
+		
+		return user.isConnected() ? user.getPool() : null;
 	}
 }

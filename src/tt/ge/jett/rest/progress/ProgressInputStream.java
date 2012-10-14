@@ -7,6 +7,7 @@ public class ProgressInputStream extends InputStream {
 	private InputStream in;
 	private long expected = 0;
 	private long soFar = 0;
+	private int lastPercent = -1;
 	private ProgressListener listener;
 	
 	public ProgressInputStream(InputStream in, ProgressListener listener){
@@ -126,6 +127,12 @@ public class ProgressInputStream extends InputStream {
 		
 		if(expected != 0) {
 			percent = (int) (100 * soFar / expected);
+			
+			if(lastPercent == percent) {
+				return;
+			}
+			
+			lastPercent = percent;
 		}
 		
 		listener.progress(soFar, expected == 0 ? ProgressListener.INDETERMINATE : percent);

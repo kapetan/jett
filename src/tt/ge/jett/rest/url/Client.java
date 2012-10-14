@@ -60,12 +60,20 @@ public class Client {
 			url += encodedQuery.toString();
 		}
 		
-		LOGGER.fine(method + " " + url);
+		headers = this.headers(headers);
+		
+		LOGGER.fine(method + " " + url + " " + headers);
 		
 		URLConnection conn = new URL(url).openConnection();
 		HttpURLConnection http = (HttpURLConnection) conn;
 		
-		headers = this.headers(headers);
+		String contentLength = headers.get("Content-Length");
+		
+		if(contentLength != null) {
+			http.setFixedLengthStreamingMode(Integer.parseInt(contentLength));
+		} else {
+			http.setChunkedStreamingMode(BUFFER_LENGTH);
+		}
 		
 		for(String key : headers.keySet()) {
 			http.setRequestProperty(key, headers.get(key));
@@ -79,13 +87,10 @@ public class Client {
 			
 			byte[] buffer = new byte[BUFFER_LENGTH];
 			int read = 0;
-			long total = 0;
 			OutputStream out = http.getOutputStream();
 			
-			while((read = body.read(buffer)) > 0) {				
+			while((read = body.read(buffer)) > 0) {
 				out.write(buffer, 0, read);
-				
-				total += read;
 			}
 			
 			out.flush();
@@ -93,6 +98,8 @@ public class Client {
 		}
 		
 		int status = http.getResponseCode();
+		
+		LOGGER.fine(status + " " + http.getResponseMessage());
 		
 		if(300 <= status && status <= 303 || status == 307) {
 			if(followed > 0) {

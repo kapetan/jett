@@ -6,10 +6,10 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import tt.ge.jett.rest.Token;
 import tt.ge.jett.rest.User;
 
 import com.google.gson.GsonBuilder;
@@ -18,7 +18,7 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-public class Api extends Thread {
+public class Api implements Runnable {
 	private static final Logger LOGGER = Logger.getLogger(Api.class.getName());
 	private static final String HOST = "open.ge.tt";
 	private static final int PORT = 443;
@@ -31,12 +31,16 @@ public class Api extends Thread {
 	
 	private JsonSocket socket;
 	private String session;
+	private String accesstoken;
 	
+	private volatile boolean connected = false;
 	private volatile boolean run = true;
 	
-	private List<MessageListener> listeners = new ArrayList<MessageListener>();
+	private ArrayList<MessageListener> listeners = new ArrayList<MessageListener>();
 	
 	public void connect(String accesstoken, String session) throws IOException {
+		this.accesstoken = accesstoken;
+		
 		socket = new JsonSocket(HOST, PORT);
 		socket.setGson(new GsonBuilder().registerTypeAdapter(MessageType.class, 
 			new JsonDeserializer<MessageType>() {
@@ -62,11 +66,15 @@ public class Api extends Thread {
 		
 		socket.send(connect);
 		
-		this.start();
+		connected = true;
 	}
 	
 	public void connect(User user, String session) throws IOException {
 		connect(user.getToken().getAccesstoken(), session);
+	}
+	
+	public void connect(Token token, String session) throws IOException {
+		connect(token.getAccesstoken(), session);
 	}
 	
 	public void connect(String accesstoken) throws IOException {
@@ -75,6 +83,28 @@ public class Api extends Thread {
 	
 	public void connect(User user) throws IOException {
 		connect(user.getToken().getAccesstoken());
+	}
+	
+	public void connect(Token token) throws IOException {
+		connect(token, generateSession());
+	}
+	
+	@SuppressWarnings("unchecked")
+	public Api reconnect() throws IOException {
+		if(connected) {
+			close();
+		}
+		
+		Api api = new Api();
+		api.listeners = (ArrayList<MessageListener>) listeners.clone();
+		
+		api.connect(accesstoken);
+		
+		return api;
+	}
+	
+	public boolean isConnected() {
+		return connected;
 	}
 	
 	public void close() {
@@ -132,11 +162,15 @@ public class Api extends Thread {
 			}
 		}
 		catch(IOException e) {
+			LOGGER.severe("Error reading message: " + e.getMessage());
+			
 			for(MessageListener l : listeners) {
 				l.error(e);
 			}
 		}
 		finally {
+			connected = false;
+			
 			try {
 				socket.close();
 			} catch (IOException e) {}

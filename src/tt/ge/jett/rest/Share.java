@@ -15,14 +15,14 @@ import tt.ge.jett.rest.url.Helper;
 import com.google.gson.reflect.TypeToken;
 
 public class Share {
-	public static List<Share> find(Token token) throws IOException {
+	public static List<Share> all(Token token) throws IOException {
 		String response = Helper.request("GET", "shares", token, null);
 		Type type = new TypeToken<ArrayList<Share>>() {}.getType();
 		
 		return Helper.GSON.fromJson(response, type);
 	}
 	
-	public static Share all(String sharename) throws IOException {
+	public static Share find(String sharename) throws IOException {
 		return Helper.get(String.format("shares/%s", sharename), null, Share.class);
 	}
 	
@@ -119,11 +119,28 @@ public class Share {
 	}
 	
 	public File createFile(Map<String, String> attributes) throws IOException {
-		return addFile(File.create(user.getToken(), sharename, attributes));
+		if(user.isConnected()) {
+			attributes.put("session", user.getSession());
+		}
+		
+		File file = File.create(user.getToken(), sharename, attributes);
+		
+		file.setShare(this);
+		files.add(0, file);
+		
+		return file;
+		
+		//return addFile(File.create(user.getToken(), sharename, attributes));
 	}
 	
 	public File createFile(String filename) throws IOException {
-		return addFile(File.create(user.getToken(), sharename, filename));
+		Map<String, String> attributes = new HashMap<String, String>();
+		
+		attributes.put("filename", filename);
+		
+		return createFile(attributes);
+		
+		//return addFile(File.create(user.getToken(), sharename, filename));
 	}
 	
 	public void destroyFile(String fileid) throws IOException {
@@ -134,15 +151,31 @@ public class Share {
 	}
 	
 	public File uploadFile(String filename, InputStream in) throws IOException {
-		return addFile(File.upload(user.getToken(), sharename, filename, in));
+		//return addFile(File.upload(user.getToken(), sharename, filename, in));
+		File file = createFile(filename);
+		
+		file.upload(in);
+		
+		return file;
 	}
 	
 	public File uploadFile(String filename, String in) throws IOException {
-		return addFile(File.upload(user.getToken(), sharename, filename, in));
+		//return addFile(File.upload(user.getToken(), sharename, filename, in));
+		File file = createFile(filename);
+		
+		file.upload(in);
+		
+		return file;
 	}
 	
 	public File uploadFile(java.io.File file) throws IOException {
-		return addFile(File.upload(user.getToken(), sharename, file));
+		//return addFile(File.upload(user.getToken(), sharename, file));
+		
+		File f = createFile(file.getName());
+		
+		f.upload(file);
+		
+		return f;
 	}
 	
 	public InputStream getBlobFile(String fileid) throws IOException {
@@ -182,10 +215,27 @@ public class Share {
 		return this;
 	}
 	
-	private File addFile(File file) {
+	/*private File addFile(File file) {
 		file.setShare(this);
 		files.add(0, file);
 		
 		return file;
-	}
+	}*/
+	
+	/*private File createFile(String filename) {
+		Map<String, String> attrs = new HashMap<String, String>();
+		
+		attrs.put("filename", filename);
+		
+		if(user.isConnected()) {
+			attrs.put("session", user.getSession());
+		}
+		
+		File file = File.create(user.getToken(), sharename, attrs);
+				
+		file.setShare(this);
+		files.add(0, file);
+		
+		return file;
+	}*/
 }

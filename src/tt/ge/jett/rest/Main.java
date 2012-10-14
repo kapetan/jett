@@ -16,15 +16,18 @@ import java.util.logging.SimpleFormatter;
 import javax.imageio.stream.FileImageInputStream;
 
 import tt.ge.jett.live.Api;
+import tt.ge.jett.live.FileListener;
 import tt.ge.jett.live.JsonSocket;
 import tt.ge.jett.live.MessageListener;
 import tt.ge.jett.live.Pool;
+import tt.ge.jett.live.UploadTask;
+import tt.ge.jett.rest.progress.ProgressInputStream;
 import tt.ge.jett.rest.progress.ProgressListener;
 import tt.ge.jett.rest.progress.ProgressListenerAdapter;
 import tt.ge.jett.rest.url.Client;
+import tt.ge.jett.rest.url.Helper;
 
 public class Main {
-	
 	public static void main(String... args) throws IOException, InterruptedException {
 		Logger logger = Logger.getLogger("tt.ge.jett");
 		Handler handler = new ConsoleHandler();
@@ -36,89 +39,86 @@ public class Main {
 		logger.setLevel(Level.ALL);
 		logger.addHandler(handler);
 		
-		User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
+		/*java.io.File f = new java.io.File("tmp/mastodon.mp3");
+		Map<String, String> headers = new HashMap<String, String>();
 		
-		/*Api api = new Api();
+		headers.put("Content-Length", String.valueOf(f.length()));
 		
-		api.addMessageListener(new MessageListener.Adapter() {
-
-			@Override
-			public void download(String sharename, String fileid,
-					String filename) {
-				System.out.println("Donwload " + sharename + " " + filename);
-			}
-		});
-		
-		api.connect(user);
-		api.run();*/
-		
-		/*Share share = user.getShare("8EkKhCP");
-		
-		share.uploadFile(new File("tmp/boromir.gif"));*/
-		
-		/*File file = share.getFile("0");
-		
-		file.download(new java.io.File("tmp/st.jpg"));*/
-		
-		Share share = user.createShare("Hello");
-		/*File file = share.createFile("a.txt");
-		
-		file.upload("hello you!");*/
-		File file = share.createFile("mastodon.mp3");
-		
-		file.addUploadProgressListener(new ProgressListenerAdapter() {
+		InputStream in = new ProgressInputStream(new FileInputStream(f), new ProgressListener() {
 			@Override
 			public void start() {
 				System.out.println("Started");
 			}
-
+			
+			@Override
+			public void progress(long progress, int percent) {
+				System.out.println("Progress " + progress + " " + percent);
+			}
+			
 			@Override
 			public void end() {
 				System.out.println("Ended");
 			}
+		}, f.length());
+		
+		Helper.URL_CLIENT.request("PUT", "http://192.168.0.13:8080", 
+				new HashMap<String, String>(), in, headers);*/
+		
+		User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
+		
+		user.connect();
+		
+		Share share = user.createShare("My Share");
+		
+		for(int i = 1; i <= 3; i++) {
+			java.io.File f = new java.io.File(String.format("tmp/m%s.mp3", i));
+			final File file = share.createFile(f.getName());
+			
+			file.addListener(new FileListener.Adapter() {
+				@Override
+				public void download() {
+					System.out.println(file.getFileid() + " Downlaoded");
+				}
+
+				@Override
+				public void uploadStart() {
+					System.out.println(file.getFileid() + " Started");
+				}
+
+				@Override
+				public void uploadProgress(long progress, int percent) {
+					System.out.println(file.getFileid() + " Progress " + progress +  " -> " + percent);
+				}
+
+				@Override
+				public void uploadEnd() {
+					System.out.println(file.getFileid() + " Ended");
+				}
+			});
+			
+			file.upload(f);
+		}
+		
+		/*final File file = share.createFile("m.wmv");
+		
+		file.addListener(new FileListener.Adapter() {
 
 			@Override
-			public void progress(long progress, int percent) {
-				System.out.println("Progress " + progress + " - " + percent);
+			public void uploadStart() {
+				System.out.println(file.getFileid() + " - " + file.getFilename() + " Started");
+			}
+
+			@Override
+			public void uploadProgress(long progress, int percent) {
+				System.out.println(file.getFileid() + " Progress " + progress +  " -> " + percent);
+			}
+
+			@Override
+			public void uploadEnd() {
+				System.out.println(file.getFileid() + " Ended");
 			}
 		});
 		
-		file.upload(new java.io.File("tmp/mastodon.mp3"));
-		
-		/*User user = User.login("r.0.uAdqxG7tSsP6qxLzVBXhUhJXcHGBSbL6Gck2m-" +
-				"fc.0.0.e97b008c894f064567b4e66cae9d9b271d595312");
-		
-		Pool pool = new Pool(user.getToken());
-		
-		Map<String, String> attrs = new HashMap<String, String>();
-		attrs.put("filename", "test.txt");
-		attrs.put("session", pool.getSession());
-		File file = user.getShare("5PvolNB").createFile(attrs);
-		
-		pool.add("C:\\Users\\mirza\\Pictures\\pic\\1246395372269.jpg", file);
-		
-		//file.write("Hello this is so wrong");
-		
-		System.out.println("Session: " + pool.getSession());
-		
-		pool.join();*/
-		
-		/*Map<String, String> attrs = new HashMap<String, String>();
-		attrs.put("filename", "test.txt");
-		
-		File file = user.getShare("5PvolNB").uploadFile("C:\\Users\\mirza\\Pictures\\pic\\1246395372269.jpg");
-		
-		InputStream in = file.getScaled(100, 100);
-		
-		System.out.println(in.read());
-		in.close();*/
-		
-		/*JsonSocket socket = new JsonSocket("open.ge.tt", 443);
-		socket.connect();
-		
-		socket.send("{\"type\":\"ping\"}");
-		socket.receive();
-		
-		socket.close();*/
+		file.upload(new java.io.File("tmp/r (1).wmv"));*/
 	}
 }

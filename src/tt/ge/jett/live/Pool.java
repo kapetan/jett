@@ -2,126 +2,188 @@ package tt.ge.jett.live;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
+import java.util.Map;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.logging.Logger;
 
 import tt.ge.jett.rest.File;
-import tt.ge.jett.rest.Token;
 
-public class Pool extends Thread {
-	enum FileEvent {
-		DOWNLOAD,
-		UPLOADING,
-		UPLOAD,
-		ERROR;
-	}
+public class Pool {
+	private static final int MAX_WORKERS = 2;
+	private static final Logger LOGGER = Logger.getLogger(Pool.class.getName());
 	
-	private static int STOP_ACTION = 0;
+	private PriorityBlockingQueue<UploadTask> tasks;
+	private List<Worker> workers;
+	private Api api;
+	private EventHandler events;
+	private Map<String, File> cache = new HashMap<String, File>();
 	
-	private BlockingQueue<Notification> messageQueue = new PriorityBlockingQueue<Notification>();
-	
-	private List<Uploader> pool = new ArrayList<Uploader>();
-	private List<Uploader> uploading = new ArrayList<Uploader>();
-	
-	private Api notifier;
-	
-	public Pool(Token token) throws IOException {
-		this(token.getAccesstoken());
-	}
+	private int uploaded = 0;
 	
 	public Pool(String accesstoken) throws IOException {
-		notifier = new Api();
-		notifier.addMessageListener(new PoolMessageListener(this));
+		tasks = new PriorityBlockingQueue<UploadTask>(10, new Comparator<UploadTask>() {
+			@Override
+			public int compare(UploadTask t1, UploadTask t2) {
+				return -t1.getPriority().compareTo(t2.getPriority());
+			}
+		});
 		
-		notifier.connect(accesstoken);
+		workers = new ArrayList<Worker>(MAX_WORKERS);
 		
-		this.start();
+		for(int i = 0; i < MAX_WORKERS; i++) {
+			Worker worker = new Worker();
+			
+			worker.start();
+			workers.add(worker);
+		}
+		
+		events = new EventHandler();
+		
+		events.start();
+		
+		api = new Api();
+		
+		api.addMessageListener(new PoolMessageListener(this));
+		api.connect(accesstoken);
+		
+		(new Thread(api)).start();
 	}
 	
-	public void add(String filename, File file) {
-		Notification msg = Notification.add();
-		msg.put("file", file);
-		msg.put("filename", file);
+	public void reconnect() throws IOException {
+		api.close();
 		
-		message(msg);
+		api = api.reconnect();
+		
+		(new Thread(api)).start();
+	}
+	
+	public void scheduleEvent(Runnable runnable) {
+		events.schedule(runnable);
+	}
+	
+	public void addMessageListener(MessageListener listener) {
+		api.addMessageListener(listener);
+	}
+	
+	public void removeMessageListener(MessageListener listener) {
+		api.removeMessageListener(listener);
 	}
 	
 	public String getSession() {
-		return notifier.getSession();
+		return api.getSession();
 	}
 	
-	public void event(FileEvent type, File file, Object extra) {
-		Notification msg = Notification.event();
-		msg.put("type", type);
-		msg.put("file", file);
-		msg.put("extra", extra);
-		
-		message(msg);
+	public boolean isConnected() {
+		return api.isConnected();
 	}
 	
-	public void download(String sharename, String fileid) {
-		Notification msg = Notification.download();
-		msg.put("sharename", sharename);
-		msg.put("fileid", fileid);
-		
-		message(msg);
+	public void addUploadTask(UploadTask task) {
+		tasks.offer(task);
 	}
 	
-	public void error(String sharename, String fileid) {
-		System.out.println("Error received in pool");
-	}
-	
-	@Override
-	public void run() {
-		try {
-			while(true) {
-				Notification msg = messageQueue.take();
-				System.out.println(msg);
+	public void prioritizeUploadTask(String sharename, String fileid) {
+		synchronized (tasks) {
+			for(UploadTask task : tasks) {
+				File file = task.getFile();
 				
-				switch(msg.getType()) {
-				case SELF:
-					int action = msg.get("action");
+				if(file.getSharename().equals(sharename) && file.getFileid().equals(fileid)) {
+					task.prioritize();
 					
-					if(action == STOP_ACTION) {
-						return;
-					}
-					
-					break;
-				case DOWNLOAD:
-					break;
-				case ADD:
-					if(!activeUploads()) {
-						/*Uploader uploader = pool.remove(0);
-						uploading.add(uploader);
-						
-						uploader.start();*/
-					}
-					
-					break;
-				case EVENT:
-					break;
+					LOGGER.finest("Prioritizing task " + task);
 				}
 			}
-		} 
-		catch (InterruptedException e) {}
+		}
+	}
+	
+	public void addFile(File file) {
+		synchronized (cache) {
+			cache.put(file.getSharename() + "-" + file.getFileid(), file);
+		}
+	}
+	
+	public File getFile(String sharename, String fileid) {
+		synchronized (cache) {
+			return cache.get(sharename + "-" + fileid);
+		}
+	}
+	
+	public void close() {
+		LOGGER.info("Shutingdown Pool");
 		
-		System.out.println("Should not be here");
+		api.close();
+		
+		for(int i = 0; i < workers.size(); i++) {
+			Worker worker = workers.get(i);
+			
+			worker.run = false;
+			tasks.offer(new NullUploadTask());
+		}
 	}
 	
-	public void message(Notification msg) {
-		try {
-			messageQueue.put(msg);
-		} catch (InterruptedException e) {}
+	class Worker extends Thread {
+		private volatile boolean run = true;
+		
+		@Override
+		public void run() {
+			try {
+				while(run) {
+					final UploadTask task = tasks.take();
+					
+					if(task instanceof NullUploadTask) {
+						break;
+					}
+					
+					LOGGER.info("Worker uploading file " + task);
+					
+					try {
+						task.upload();
+						uploaded++;
+					} catch (final IOException e) {
+						LOGGER.severe("Upload failed: " + e.getMessage());
+						
+						if(task.shouldRetry()) {
+							LOGGER.fine("Retrying file");
+							
+							tasks.offer(task);
+						} else {
+							LOGGER.warning("Upload aborted");
+							
+							scheduleEvent(new Runnable() {
+								@Override
+								public void run() {
+									for(FileListener listener : task.getFile().getListeners()) {
+										listener.error(e);
+									}
+								}
+							});
+						}
+					}
+				}
+				
+				LOGGER.finer("Worker finished");
+			} catch (InterruptedException e) {}
+		}
 	}
 	
-	private boolean activeUploads() {
-		for(Uploader u : uploading) {
-			if(u.isRunning()) {
-				return true;
-			}
+	public static class NullUploadTask extends UploadTask {
+		public NullUploadTask() {
+			super(null);
 		}
 		
-		return false;
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof NullUploadTask;
+		}
+		
+		@Override
+		public String toString() {
+			return "[File null]";
+		}
+
+		@Override
+		public void deferredUpload() throws IOException {}
 	}
 }

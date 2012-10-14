@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import tt.ge.jett.live.Pool;
 import tt.ge.jett.rest.url.Helper;
 
 public class User {
@@ -33,7 +34,7 @@ public class User {
 		return user;
 	}
 	
-	public static User user(String accesstoken) {
+	public static User get(String accesstoken) {
 		Token token = new Token(accesstoken);
 		User user = new User();
 		
@@ -44,8 +45,12 @@ public class User {
 	
 	private String userid;
 	private String fullname;
+	private int files;
+	private long downloads;
 	private String email;
 	private Storage storage;
+	
+	private transient Pool pool;
 	private transient Token token;
 	
 	@Override
@@ -61,6 +66,36 @@ public class User {
 	@Override
 	public String toString() {
 		return Helper.GSON.toJson(this);
+	}
+	
+	public void connect() throws IOException {
+		pool = new Pool(token.getAccesstoken());
+	}
+	
+	public void disconnect() {
+		if(pool == null) {
+			return;
+		}
+		
+		pool.close();
+		
+		pool = null;
+	}
+	
+	public Pool getPool() {
+		return pool;
+	}
+	
+	public String getSession() {
+		if(pool == null) {
+			return null;
+		}
+		
+		return pool.getSession();
+	}
+	
+	public boolean isConnected() {
+		return pool != null && pool.isConnected();
 	}
 	
 	public Token refreshToken() throws IOException {
@@ -99,12 +134,20 @@ public class User {
 		return email;
 	}
 	
+	public int getFiles() {
+		return files;
+	}
+	
+	public long getDownloads() {
+		return downloads;
+	}
+	
 	public Storage getStorage() {
 		return storage;
 	}
 	
 	public List<Share> getShares() throws IOException {
-		List<Share> shares = Share.find(token);
+		List<Share> shares = Share.all(token);
 		
 		for(Share share : shares) {
 			share.setUser(this);
@@ -114,7 +157,7 @@ public class User {
 	}
 	
 	public Share getShare(String sharename) throws IOException {
-		Share share = Share.all(sharename);
+		Share share = Share.find(sharename);
 		share.setUser(this);
 		
 		return share;
