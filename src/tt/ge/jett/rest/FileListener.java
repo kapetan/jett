@@ -1,4 +1,4 @@
-package tt.ge.jett.live;
+package tt.ge.jett.rest;
 
 public interface FileListener {
 	void uploadStart();

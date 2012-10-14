@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import tt.ge.jett.rest.File;
+import tt.ge.jett.rest.FileListener;
 
 public class PoolMessageListener implements MessageListener {
 	private Pool pool;

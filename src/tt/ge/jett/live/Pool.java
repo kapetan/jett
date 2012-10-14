@@ -10,6 +10,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Logger;
 
 import tt.ge.jett.rest.File;
+import tt.ge.jett.rest.FileListener;
 
 public class Pool {
 	private static final int MAX_WORKERS = 2;

@@ -1,6 +1,5 @@
 package tt.ge.jett.rest;
 
-import tt.ge.jett.live.FileListener;
 import tt.ge.jett.rest.progress.ProgressListener;
 
 public class FileProgressListener implements ProgressListener {

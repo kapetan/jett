@@ -3,6 +3,7 @@ package tt.ge.jett.live;
 import java.util.List;
 
 import tt.ge.jett.rest.File;
+import tt.ge.jett.rest.FileListener;
 import tt.ge.jett.rest.progress.ProgressListener;
 
 public class PoolProgressListener implements ProgressListener {

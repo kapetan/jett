@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import tt.ge.jett.live.FileListener;
 import tt.ge.jett.live.Pool;
 import tt.ge.jett.live.PoolProgressListener;
 import tt.ge.jett.live.UploadTask;

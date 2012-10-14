@@ -16,7 +16,6 @@ import java.util.logging.SimpleFormatter;
 import javax.imageio.stream.FileImageInputStream;
 
 import tt.ge.jett.live.Api;
-import tt.ge.jett.live.FileListener;
 import tt.ge.jett.live.JsonSocket;
 import tt.ge.jett.live.MessageListener;
 import tt.ge.jett.live.Pool;
