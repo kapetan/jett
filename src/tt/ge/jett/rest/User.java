@@ -111,10 +111,6 @@ public class User {
 	}
 	
 	public Token getToken() {
-		/*if(token.hasExpired()) {
-			refreshToken();
-		}*/
-		
 		return token;
 	}
 
@@ -150,48 +146,69 @@ public class User {
 		List<Share> shares = Share.all(token);
 		
 		for(Share share : shares) {
-			share.setUser(this);
+			share(share);
 		}
 		
 		return shares;
 	}
 	
 	public Share getShare(String sharename) throws IOException {
-		Share share = Share.find(sharename);
-		share.setUser(this);
+		Share share = null;
+		
+		if(isConnected()) {
+			share = pool.getShare(sharename);
+		}
+		if(share == null) {
+			share = share(Share.find(sharename));
+		}
 		
 		return share;
 	}
 	
 	public Share createShare(Map<String, String> attributes) throws IOException {
 		Share share = Share.create(token, attributes);
-		share.setUser(this);
 		
-		return share;
+		return share(share);
 	}
 	
 	public Share createShare(String title) throws IOException {
 		Share share = Share.create(token, title);
-		share.setUser(this);
 		
-		return share;
+		return share(share);
 	}
 	
 	public Share createShare() throws IOException {
 		Share share = Share.create(token);
-		share.setUser(this);
 		
-		return share;
+		return share(share);
 	}
 	
 	public Share updateShare(String sharename, Map<String, String> attributes) throws IOException {
-		Share share = Share.update(token, sharename, attributes);
-		share.setUser(this);
+		Share share = null; //Share.update(token, sharename, attributes);
+		//share.setUser(this);
+		
+		if(isConnected()) {
+			share = pool.getShare(sharename);
+		}
+		if(share == null) {
+			share = share(Share.update(token, sharename, attributes));
+		}
 		
 		return share;
 	}
 	
 	public void destroyShare(String sharename) throws IOException {
 		Share.destroy(token, sharename);
+		pool.removeShare(sharename);
+	}
+	
+	private Share share(Share share) {
+		share.setUser(this);
+		
+		if(pool.isConnected()) {
+			pool.addShare(share);
+		}
+		
+		return share;
 	}
 }

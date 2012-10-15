@@ -156,7 +156,7 @@ public class File {
 	
 	private String fileid;
 	private String filename;
-	private int downloads;
+	private volatile int downloads;
 	private String sharename;
 	private ReadyState readystate;
 	private Date created;
@@ -224,12 +224,6 @@ public class File {
 	public void setShare(Share share) {
 		this.sharename = share.getSharename();
 		this.share = share;
-		
-		Pool pool = share.getUser().getPool();
-		
-		if(pool != null) {
-			pool.addFile(this);
-		}
 	}
 
 	public String getFileid() {
@@ -394,7 +388,8 @@ public class File {
 	}
 	
 	public void destroy() throws IOException {
-		File.destroy(share.getUser().getToken(), sharename, fileid);
+		share.destroyFile(fileid);
+		//File.destroy(share.getUser().getToken(), sharename, fileid);
 	}
 	
 	public Upload refreshUpload() throws IOException {

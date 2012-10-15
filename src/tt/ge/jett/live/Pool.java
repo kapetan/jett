@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import tt.ge.jett.rest.File;
 import tt.ge.jett.rest.FileListener;
+import tt.ge.jett.rest.Share;
 
 public class Pool {
 	private static final int MAX_WORKERS = 2;
@@ -20,7 +21,7 @@ public class Pool {
 	private List<Worker> workers;
 	private Api api;
 	private EventHandler events;
-	private Map<String, File> cache = new HashMap<String, File>();
+	private Map<String, Share> cache = new HashMap<String, Share>();
 	
 	private int uploaded = 0;
 	
@@ -99,22 +100,48 @@ public class Pool {
 		}
 	}
 	
-	public void addFile(File file) {
+	public void addShare(Share share) {
 		synchronized (cache) {
-			cache.put(file.getSharename() + "-" + file.getFileid(), file);
+			cache.put(share.getSharename(), share);
+		}
+	}
+	
+	public Share getShare(String sharename) {
+		synchronized (cache) {
+			return cache.get(sharename);
+		}
+	}
+	
+	public void removeShare(String sharename) {
+		synchronized(cache) {
+			cache.remove(sharename);
 		}
 	}
 	
 	public File getFile(String sharename, String fileid) {
-		synchronized (cache) {
-			return cache.get(sharename + "-" + fileid);
+		Share share = getShare(sharename);
+		
+		return share.getFile(fileid);
+	}
+	
+	public List<Share> getShares() {
+		synchronized(cache) {
+			return new ArrayList<Share>(cache.values());
 		}
 	}
 	
 	public List<File> getFiles() {
-		synchronized(cache) {
-			return new ArrayList<File>(cache.values());
+		List<File> files = new ArrayList<File>();
+		
+		synchronized (cache) {
+			List<Share> shares = getShares();
+			
+			for(Share share : shares) {
+				files.addAll(share.getFiles());
+			}
 		}
+		
+		return files;
 	}
 	
 	public void close() {

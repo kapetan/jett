@@ -100,7 +100,7 @@ public class Share {
 	}
 	
 	public boolean isLive() {
-		return live;
+		return live || user.isConnected();
 	}
 	
 	public List<File> getFiles() {
@@ -203,7 +203,8 @@ public class Share {
 	}
 	
 	public void destroy() throws IOException {
-		Share.destroy(user.getToken(), sharename);
+		user.destroyShare(sharename);
+		//Share.destroy(user.getToken(), sharename);
 	}
 	
 	public Share update(Map<String, String> attributes) throws IOException {
