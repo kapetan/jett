@@ -51,7 +51,7 @@ public class Pool {
 		api.addMessageListener(new PoolMessageListener(this));
 		api.connect(accesstoken);
 		
-		(new Thread(api)).start();
+		startApi(api);
 	}
 	
 	public void reconnect() throws IOException {
@@ -59,7 +59,7 @@ public class Pool {
 		
 		api = api.reconnect();
 		
-		(new Thread(api)).start();
+		startApi(api);
 	}
 	
 	public void scheduleEvent(Runnable runnable) {
@@ -157,8 +157,20 @@ public class Pool {
 		}
 	}
 	
+	private void startApi(Api api) {
+		Thread apiThread = new Thread(api);
+		
+		apiThread.setDaemon(true);
+		apiThread.start();
+	}
+	
 	class Worker extends Thread {
 		private volatile boolean run = true;
+		
+		public Worker() {
+			super();
+			setDaemon(true);
+		}
 		
 		@Override
 		public void run() {

@@ -56,5 +56,38 @@ api.connect(user);
 api.run();
 ```
 
+### SDK
+
+This library also contains a higher level API, which is a combination of the live and REST API. By calling `User#connect()` a live API thread is started, together with multiple worker threads. The worker threads handle all the file uploads, which means calling `File#upload()` will return immediately and the upload will be queued, and uploaded later when a worker thread is available.
+
+The file will still be available to others (e.g. on http://ge.tt), since we are using the live API. When a download event is received for a queued file, that file is moved to the top of the upload queue.
+
+It is possible to add multiple `FileListener` instances to a file and listen for file events. When using the live API, all the events are executed in the same event thread.
+
+```Java
+User user = User.login("refreshtoken");
+
+// Start the live API
+user.connect();
+
+Share share = user.createShare();
+final File file = share.createFile("video.avi");
+
+file.addListener(new FileListener.Adapter() {
+	@Override
+	public void download() {
+		System.out.println(String.format("%s downloaded %s times", file.getFilename(), file.getDownloads()));
+	}
+
+	@Override
+	public void uploadProgress(long progress, int percent) {
+		System.out.println(String.format("%s upload progress %s", file.getFilename(), percent));
+	}
+});
+
+// Queues upload
+file.upload(new java.io.File("/path/to/file"));
+```
+
 [api]:https://open.ge.tt/1/doc "Ge.tt API documentation"
 [gson]:http://code.google.com/p/google-gson/ "GSON"
