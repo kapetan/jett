@@ -42,10 +42,12 @@ public class Main {
 		
 		user.connect();
 		
-		final FileTable fileModel = new FileTable();
+		final FileTableModel fileModel = new FileTableModel();
 		final JTable table = new JTable(fileModel);
 		
-		table.setPreferredScrollableViewportSize(new Dimension(500, 70));
+		//table.setDefaultRenderer(File.class, new ActionRenderer());
+		
+		table.setPreferredScrollableViewportSize(new Dimension(700, 150));
         table.setFillsViewportHeight(true);
 		
 		final JFrame window = new JFrame("Ge.tt");
@@ -55,6 +57,7 @@ public class Main {
 		chooser.setMultiSelectionEnabled(true);
 		
 		JButton addFile = new JButton("Add file");
+		JButton destroyFile = new JButton("Destroy selected files");
 		
 		addFile.addActionListener(new ActionListener() {
 			@Override
@@ -78,7 +81,31 @@ public class Main {
 			}
 		});
 		
+		destroyFile.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int[] selected = table.getSelectedRows();
+				File[] files = new File[selected.length];
+				
+				for(int i : selected) {
+					files[i] = fileModel.getFile(i);
+				}
+				
+				for(File file : files) {
+					try {
+						file.destroy();
+					} catch (IOException e1) {
+						return;
+					}
+					
+					fileModel.removeFile(file);
+				}
+			}
+		});
+		
 		actions.add(addFile);
+		actions.add(destroyFile);
+		
 		window.add(actions, BorderLayout.NORTH);
 		window.add(new JScrollPane(table), BorderLayout.CENTER);
 		
@@ -175,7 +202,7 @@ public class Main {
 		file.upload(new java.io.File("tmp/r (1).wmv"));*/
 	}
 	
-	static class FileTable extends AbstractTableModel {
+	static class FileTableModel extends AbstractTableModel {
 		private static final String[] FIELDS = {
 			"Filename", "Readystate", "Downloads", "Created"
 		};
@@ -185,6 +212,17 @@ public class Main {
 		public void setFiles(List<File> files) {
 			this.files = files;
 			fireTableDataChanged();
+		}
+		
+		public void removeFile(File file) {
+			int i = files.indexOf(file);
+			
+			files.remove(file);
+			fireTableRowsDeleted(i, i);
+		}
+		
+		public File getFile(int row) {
+			return files.get(row);
 		}
 		
 		@Override
@@ -214,6 +252,8 @@ public class Main {
 				return file.getDownloads();
 			case 3:
 				return file.getCreated();
+			//case 4:
+			//	return file;
 			}
 			
 			return null;
@@ -223,5 +263,43 @@ public class Main {
 		public String getColumnName(int column) {
 			return FIELDS[column];
 		}
+
+		@Override
+		public Class<?> getColumnClass(int columnIndex) {
+			if(columnIndex == FIELDS.length - 1) {
+				return File.class;
+			}
+			
+			return super.getColumnClass(columnIndex);
+		}
 	}
+	
+	/*static class ActionRenderer implements TableCellRenderer {
+		@Override
+		public Component getTableCellRendererComponent(final JTable table,
+				Object value, boolean isSelected, boolean hasFocus, int row,
+				int column) {
+			
+			final File file = (File) value;
+			
+			JButton destroy = new JButton("Destroy");
+			
+			destroy.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					try {
+						file.destroy();
+					} catch (IOException e1) {
+						return;
+					}
+					
+					FileTableModel model = (FileTableModel) table.getModel();
+					
+					model.removeFile(file);
+				}
+			});
+			
+			return destroy;
+		}
+	}*/
 }
