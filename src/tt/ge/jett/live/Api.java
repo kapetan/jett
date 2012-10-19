@@ -133,12 +133,12 @@ public class Api implements Runnable {
 			while(run) {
 				Message msg = socket.receiveJson(Message.class);
 				
-				LOGGER.fine("Message received");
+				LOGGER.fine("Message received " + msg.type);
 				
 				switch(msg.type) {
 				case DOWNLOAD:
 					for(MessageListener l : listeners) {
-						l.download(msg.sharename, msg.fileid, msg.filename);
+						l.download(msg.sharename, msg.fileid, msg.filename, msg.increment);
 					}
 					
 					break;
@@ -158,6 +158,8 @@ public class Api implements Runnable {
 					for(MessageListener l : listeners) {
 						l.violatedterms(msg.sharename, msg.fileid, msg.filename, msg.reason);
 					}
+					
+					break;
 				}
 			}
 		}

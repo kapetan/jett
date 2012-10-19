@@ -4,6 +4,5 @@ public enum MessageType {
 	DOWNLOAD,
 	STORAGELIMIT,
 	VIOLATEDTERMS,
-	FILESTAT,
-	PONG;
+	FILESTAT;
 }

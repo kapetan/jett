@@ -23,8 +23,6 @@ public class Pool {
 	private EventHandler events;
 	private Map<String, Share> cache = new HashMap<String, Share>();
 	
-	private int uploaded = 0;
-	
 	public Pool(String accesstoken) throws IOException {
 		tasks = new PriorityBlockingQueue<UploadTask>(10, new Comparator<UploadTask>() {
 			@Override
@@ -186,7 +184,6 @@ public class Pool {
 					
 					try {
 						task.upload();
-						uploaded++;
 					} catch (final IOException e) {
 						LOGGER.severe("Upload failed: " + e.getMessage());
 						

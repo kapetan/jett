@@ -173,15 +173,28 @@ public class File {
 	public File() {
 		uploadProgress = readystate == ReadyState.UPLOADED ? 100 : 0;
 		
-		addListener(new FileListener.Adapter() {
+		final FileProxyImplementor.Emitter share = new FileProxyImplementor.Emitter() {
 			@Override
-			public void download() {
-				downloads++;
+			public FileProxyImplementor getFileImplementor() {
+				return File.this.share;
+			}
+		};
+		
+		addListener(new FileListener() {
+			@Override
+			public void download(boolean increment) {
+				if(increment) {
+					downloads++;
+				}
+				
+				share.download(File.this, increment);
 			}
 
 			@Override
 			public void uploadStart() {
 				uploadProgress = 0;
+				
+				share.uploadStart(File.this);
 			}
 
 			@Override
@@ -189,11 +202,35 @@ public class File {
 				if(percent != ProgressListener.INDETERMINATE) {
 					uploadProgress = percent;
 				}
+				
+				share.uploadProgress(File.this, progress, percent);
 			}
 
 			@Override
 			public void uploadEnd() {
 				uploadProgress = 100;
+				
+				share.uploadEnd(File.this);
+			}
+
+			@Override
+			public void storagelimit() {
+				share.storagelimit(File.this);
+			}
+
+			@Override
+			public void filestat(long size) {
+				share.filestat(File.this, size);
+			}
+
+			@Override
+			public void violatedterms(String reason) {
+				share.violatedterms(File.this, reason);
+			}
+
+			@Override
+			public void error(Exception e) {
+				share.error(File.this, e);
 			}
 		});
 	}

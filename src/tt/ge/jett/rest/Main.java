@@ -59,6 +59,23 @@ public class Main {
 		JButton addFile = new JButton("Add file");
 		JButton destroyFile = new JButton("Destroy selected files");
 		
+		user.addFileListener(new FileProxyListener.Adapter() {
+			@Override
+			public void uploadStart(File file) {
+				System.out.println("upload start " + file);
+			}
+
+			@Override
+			public void uploadEnd(File file) {
+				System.out.println("upload end " + file);
+			}
+
+			@Override
+			public void download(File file, boolean increment) {
+				System.out.println("download " + file);
+			}
+		});
+		
 		addFile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {

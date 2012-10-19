@@ -62,7 +62,7 @@ This library also contains a higher level API, which is a combination of the liv
 
 The file will still be available to others (e.g. on http://ge.tt), since we are using the live API. When a download event is received for a queued file, that file is moved to the top of the upload queue.
 
-It is possible to add multiple `FileListener` instances to a file and listen for file events. When using the live API, all the events are executed in the same event thread.
+It is possible to add multiple `FileListener` instances to a file and listen for file events. When using the live API, all the events are executed in the same event thread, for this reason no heavy work should be done in the individual listener methods.
 
 ```Java
 User user = User.login("refreshtoken");
@@ -88,6 +88,20 @@ file.addListener(new FileListener.Adapter() {
 // Queues upload
 file.upload(new java.io.File("/path/to/file"));
 ```
+
+It is also possible to add file listeners to an user or a share instance, using the `tt.ge.jett.rest.FileProxyListener` interface, which mirrors the `FileListener` interface but every method has an extra file argument, referencing the file which was the target of the event.
+
+# License 
+
+**This software is licensed under "MIT"**
+
+> Copyright (c) 2012 Mirza Kapetanovic
+> 
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+> 
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+> 
+> THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 [api]:https://open.ge.tt/1/doc "Ge.tt API documentation"
 [gson]:http://code.google.com/p/google-gson/ "GSON"
