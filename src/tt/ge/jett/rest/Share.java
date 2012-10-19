@@ -14,7 +14,7 @@ import tt.ge.jett.rest.url.Helper;
 
 import com.google.gson.reflect.TypeToken;
 
-public class Share {
+public class Share implements FileProxyImplementor {
 	public static List<Share> all(Token token) throws IOException {
 		String response = Helper.request("GET", "shares", token, null);
 		Type type = new TypeToken<ArrayList<Share>>() {}.getType();
@@ -58,7 +58,59 @@ public class Share {
 	private boolean live;
 	private List<File> files;
 	
+	private transient List<FileProxyListener> listeners = new ArrayList<FileProxyListener>();
 	private transient User user;
+	
+	public Share() {
+		final FileProxyImplementor.Emitter user = new FileProxyImplementor.Emitter() {
+			@Override
+			public FileProxyImplementor getFileImplementor() {
+				return Share.this.user;
+			}
+		};
+		
+		addFileListener(new FileProxyListener() {
+			@Override
+			public void uploadStart(File file) {
+				user.uploadStart(file);
+			}
+
+			@Override
+			public void uploadProgress(File file, long progress, int percent) {
+				user.uploadProgress(file, progress, percent);
+			}
+
+			@Override
+			public void uploadEnd(File file) {
+				user.uploadEnd(file);
+			}
+
+			@Override
+			public void download(File file, boolean increment) {
+				user.download(file, increment);
+			}
+
+			@Override
+			public void storagelimit(File file) {
+				user.storagelimit(file);
+			}
+
+			@Override
+			public void filestat(File file, long size) {
+				user.filestat(file, size);
+			}
+
+			@Override
+			public void violatedterms(File file, String reason) {
+				user.violatedterms(file, reason);
+			}
+
+			@Override
+			public void error(File file, Exception e) {
+				user.error(file, e);
+			}
+		});
+	}
 	
 	@Override
 	public boolean equals(Object other) {
@@ -105,6 +157,22 @@ public class Share {
 	
 	public List<File> getFiles() {
 		return files;
+	}
+	
+	public void addFileListener(FileProxyListener listener) {
+		synchronized (listeners) {
+			listeners.add(listener);
+		}
+	}
+	
+	public void removeFileListener(FileProxyListener listener) {
+		synchronized (listeners) {
+			listeners.remove(listener);
+		}
+	}
+	
+	public List<FileProxyListener> getFileListeners() {
+		return listeners;
 	}
 	
 	public File getFile(String fileid) {

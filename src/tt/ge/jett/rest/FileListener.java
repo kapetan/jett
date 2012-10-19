@@ -4,7 +4,7 @@ public interface FileListener {
 	void uploadStart();
 	void uploadProgress(long progress, int percent);
 	void uploadEnd();
-	void download();
+	void download(boolean increment);
 	void storagelimit();
 	void filestat(long size);
 	void violatedterms(String reason);
@@ -12,7 +12,7 @@ public interface FileListener {
 	
 	static class Adapter implements FileListener {
 		@Override
-		public void download() {}
+		public void download(boolean increment) {}
 
 		@Override
 		public void storagelimit() {}

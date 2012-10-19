@@ -14,7 +14,7 @@ public class PoolMessageListener implements MessageListener {
 	}
 
 	@Override
-	public void download(final String sharename, final String fileid, String filename) {
+	public void download(final String sharename, final String fileid, String filename, final boolean increment) {
 		pool.prioritizeUploadTask(sharename, fileid);
 		pool.scheduleEvent(new Runnable() {
 			@Override
@@ -27,7 +27,7 @@ public class PoolMessageListener implements MessageListener {
 				
 				synchronized (listeners) {
 					for(FileListener listener : listeners) {
-						listener.download();
+						listener.download(increment);
 					}
 				}
 			}

@@ -1,6 +1,7 @@
 package tt.ge.jett.rest;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +9,7 @@ import java.util.Map;
 import tt.ge.jett.live.Pool;
 import tt.ge.jett.rest.url.Helper;
 
-public class User {
+public class User implements FileProxyImplementor {
 	public static User login(String email, String password, String apikey) throws IOException {
 		Map<String, String> auth = new HashMap<String, String>();
 		auth.put("email", email);
@@ -50,6 +51,7 @@ public class User {
 	private String email;
 	private Storage storage;
 	
+	private transient List<FileProxyListener> listeners = new ArrayList<FileProxyListener>();
 	private transient Pool pool;
 	private transient Token token;
 	
@@ -140,6 +142,22 @@ public class User {
 	
 	public Storage getStorage() {
 		return storage;
+	}
+	
+	public void addFileListener(FileProxyListener listener) {
+		synchronized (listeners) {
+			listeners.add(listener);
+		}
+	}
+	
+	public void removeFileListener(FileProxyListener listener) {
+		synchronized (listeners) {
+			listeners.remove(listener);
+		}
+	}
+	
+	public List<FileProxyListener> getFileListeners() {
+		return listeners;
 	}
 	
 	public List<Share> getShares() throws IOException {
