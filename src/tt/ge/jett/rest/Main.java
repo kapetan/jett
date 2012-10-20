@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -13,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -55,6 +57,7 @@ public class Main {
 		chooser.setMultiSelectionEnabled(true);
 		
 		JButton addFile = new JButton("Add file to");
+		final JComboBox box = new JComboBox();
 		JButton destroyFile = new JButton("Destroy selected files");
 		
 		user.addFileListener(new FileProxyListener.Adapter() {
@@ -74,6 +77,8 @@ public class Main {
 			}
 		});
 		
+		updateComboBox(box, user, user.getShares());
+		
 		addFile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -82,13 +87,19 @@ public class Main {
 					
 					if(result == JFileChooser.APPROVE_OPTION) {
 						java.io.File[] files = chooser.getSelectedFiles();
-						Share share = user.createShare();
+						//Share share = user.createShare();
+						ShareItem item = (ShareItem) box.getSelectedItem();
+						Share share = item.getShare();
 						
 						for(java.io.File file : files) {
-							share.uploadFile(file);
+							File f = share.uploadFile(file);
+							
+							fileModel.addFile(f);
 						}
 						
-						fileModel.setFiles(user.getPool().getFiles());
+						updateComboBox(box, user, user.getPool().getShares());
+						
+						//fileModel.setFiles(user.getPool().getFiles());
 					}
 				} catch (IOException e) {
 					System.err.println(e.getMessage());
@@ -119,6 +130,7 @@ public class Main {
 		});
 		
 		actions.add(addFile);
+		actions.add(box);
 		actions.add(destroyFile);
 		
 		window.add(actions, BorderLayout.NORTH);
@@ -135,12 +147,21 @@ public class Main {
 		});
 	}
 	
+	private static void updateComboBox(JComboBox box, User user, List<Share> shares) {
+		box.removeAllItems();
+		box.addItem(new CreateShareItem(user));
+		
+		for(Share share : shares) {
+			box.addItem(new ShareItem(share));
+		}
+	}
+	
 	static class FileTableModel extends AbstractTableModel {
 		private static final String[] FIELDS = {
-			"Filename", "State", "Downloads", "Created"
+			"Filename", "Share", "State", "Downloads", "Created"
 		};
 
-		private List<File> files;
+		private List<File> files = new ArrayList<File>();
 		
 		public void setFiles(List<File> files) {
 			this.files = files;
@@ -159,6 +180,12 @@ public class Main {
 			}
 			
 			fireTableRowsUpdated(i, i);
+		}
+		
+		public void addFile(File file) {
+			files.add(file);
+			
+			fireTableRowsInserted(files.size() - 1, files.size() - 1);
 		}
 		
 		public void removeFile(File file) {
@@ -194,10 +221,12 @@ public class Main {
 			case 0:
 				return file.getFilename();
 			case 1:
-				return file.getReadystate();
+				return file.getShare().getGettTitle();
 			case 2:
-				return file.getDownloads();
+				return file.getReadystate();
 			case 3:
+				return file.getDownloads();
+			case 4:
 				return file.getCreated();
 			}
 			
@@ -207,6 +236,43 @@ public class Main {
 		@Override
 		public String getColumnName(int column) {
 			return FIELDS[column];
+		}
+	}
+	
+	static class ShareItem {
+		private Share share;
+		
+		public ShareItem() {}
+		
+		public ShareItem(Share share) {
+			this.share = share;
+		}
+		
+		public Share getShare() throws IOException {
+			return share;
+		}
+		
+		@Override
+		public String toString() {
+			return share.getGettTitle();
+		}
+	}
+	
+	static class CreateShareItem extends ShareItem {
+		private User user;
+		
+		public CreateShareItem(User user) {
+			this.user = user;
+		}
+		
+		@Override
+		public Share getShare() throws IOException {
+			return user.createShare();
+		}
+		
+		@Override
+		public String toString() {
+			return "New share";
 		}
 	}
 }

@@ -230,10 +230,21 @@ public class Share implements FileProxyImplementor {
 			attributes.put("session", user.getSession());
 		}
 		
-		File file = File.create(user.getToken(), sharename, attributes);
+		File file = null;
 		
-		file.setShare(this);
-		files.add(0, file);
+		for(File f : files) {
+			if(f.getFilename().equals(attributes.get("filename"))) {
+				file = f;
+				break;
+			}
+		}
+		
+		if(file == null) {
+			file = File.create(user.getToken(), sharename, attributes);
+			
+			file.setShare(this);
+			files.add(0, file);
+		}
 		
 		return file;
 	}
