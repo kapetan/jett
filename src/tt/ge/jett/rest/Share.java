@@ -155,6 +155,45 @@ public class Share implements FileProxyImplementor {
 		return live || user.isConnected();
 	}
 	
+	public String getGettTitle() {
+		if(title != null) {
+			return title;
+		}
+		if(files.size() == 1) {
+			return files.get(0).getFilename();
+		}
+		
+		FileType type = null;
+		
+		for(File file : files) {
+			if(type == null || type == file.getFileType()) {
+				type = file.getFileType();
+			} else {
+				type = FileType.MISC;
+			}
+		}
+		
+		type = type == null ? FileType.MISC : type;
+		String result = null;
+		
+		switch(type) {
+		case AUDIO:
+			result = "songs";
+			break;
+		case DOC:
+			result = "documents";
+			break;
+		case IMAGE:
+			result = "images";
+			break;
+		case MISC:
+			result = "files";
+			break;
+		}
+		
+		return files.size() + " " + result;
+	}
+	
 	public List<File> getFiles() {
 		return files;
 	}
@@ -197,8 +236,6 @@ public class Share implements FileProxyImplementor {
 		files.add(0, file);
 		
 		return file;
-		
-		//return addFile(File.create(user.getToken(), sharename, attributes));
 	}
 	
 	public File createFile(String filename) throws IOException {
@@ -207,8 +244,6 @@ public class Share implements FileProxyImplementor {
 		attributes.put("filename", filename);
 		
 		return createFile(attributes);
-		
-		//return addFile(File.create(user.getToken(), sharename, filename));
 	}
 	
 	public void destroyFile(String fileid) throws IOException {
@@ -219,7 +254,6 @@ public class Share implements FileProxyImplementor {
 	}
 	
 	public File uploadFile(String filename, InputStream in) throws IOException {
-		//return addFile(File.upload(user.getToken(), sharename, filename, in));
 		File file = createFile(filename);
 		
 		file.upload(in);
@@ -228,7 +262,6 @@ public class Share implements FileProxyImplementor {
 	}
 	
 	public File uploadFile(String filename, String in) throws IOException {
-		//return addFile(File.upload(user.getToken(), sharename, filename, in));
 		File file = createFile(filename);
 		
 		file.upload(in);
@@ -237,8 +270,6 @@ public class Share implements FileProxyImplementor {
 	}
 	
 	public File uploadFile(java.io.File file) throws IOException {
-		//return addFile(File.upload(user.getToken(), sharename, file));
-		
 		File f = createFile(file.getName());
 		
 		f.upload(file);
@@ -283,28 +314,4 @@ public class Share implements FileProxyImplementor {
 		
 		return this;
 	}
-	
-	/*private File addFile(File file) {
-		file.setShare(this);
-		files.add(0, file);
-		
-		return file;
-	}*/
-	
-	/*private File createFile(String filename) {
-		Map<String, String> attrs = new HashMap<String, String>();
-		
-		attrs.put("filename", filename);
-		
-		if(user.isConnected()) {
-			attrs.put("session", user.getSession());
-		}
-		
-		File file = File.create(user.getToken(), sharename, attrs);
-				
-		file.setShare(this);
-		files.add(0, file);
-		
-		return file;
-	}*/
 }

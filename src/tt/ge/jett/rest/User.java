@@ -223,7 +223,7 @@ public class User implements FileProxyImplementor {
 	private Share share(Share share) {
 		share.setUser(this);
 		
-		if(pool.isConnected()) {
+		if(isConnected()) {
 			pool.addShare(share);
 		}
 		

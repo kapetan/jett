@@ -46,7 +46,6 @@ public class Client {
 	
 	public InputStream request(String method, String url, Map<String, String> query, 
 			InputStream body, Map<String, String> headers, int followed) throws IOException {
-		
 		StringBuilder encodedQuery = new StringBuilder();
 		
 		for(String key : query.keySet()) {
@@ -71,7 +70,7 @@ public class Client {
 		
 		if(contentLength != null) {
 			http.setFixedLengthStreamingMode(Integer.parseInt(contentLength));
-		} else {
+		} else if(body != null) {
 			http.setChunkedStreamingMode(BUFFER_LENGTH);
 		}
 		

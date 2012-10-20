@@ -144,14 +144,10 @@ public class File {
 			headers.put("Content-Length", String.valueOf(length));
 		}
 		
-		file.readystate = ReadyState.UPLOADING;
-		
 		in = Helper.URL_CLIENT.request("PUT", upload.getPuturl(), 
 				new HashMap<String, String>(), in, headers);
 		
 		in.close();
-		
-		file.readystate = ReadyState.UPLOADED;
 	}
 	
 	private String fileid;
@@ -165,13 +161,11 @@ public class File {
 	
 	private transient volatile int uploadProgress;
 	private transient Share share;
-	//private transient CompositeProgressListener listener = 
-	//	new CompositeProgressListener();
 	private transient List<FileListener> listeners =
 		new ArrayList<FileListener>();
 	
 	public File() {
-		uploadProgress = readystate == ReadyState.UPLOADED ? 100 : 0;
+		//uploadProgress = readystate == ReadyState.UPLOADED ? 100 : 0;
 		
 		final FileProxyImplementor.Emitter share = new FileProxyImplementor.Emitter() {
 			@Override
@@ -193,6 +187,7 @@ public class File {
 			@Override
 			public void uploadStart() {
 				uploadProgress = 0;
+				readystate = ReadyState.UPLOADING;
 				
 				share.uploadStart(File.this);
 			}
@@ -209,6 +204,7 @@ public class File {
 			@Override
 			public void uploadEnd() {
 				uploadProgress = 100;
+				readystate = ReadyState.UPLOADED;
 				
 				share.uploadEnd(File.this);
 			}
@@ -300,7 +296,7 @@ public class File {
 	}
 	
 	public int getUploadProgress() {
-		return uploadProgress;
+		return readystate == ReadyState.UPLOADED ? 100 : uploadProgress;
 	}
 	
 	public void addListener(FileListener listener) {

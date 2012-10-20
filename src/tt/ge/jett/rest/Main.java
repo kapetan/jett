@@ -45,8 +45,6 @@ public class Main {
 		final FileTableModel fileModel = new FileTableModel();
 		final JTable table = new JTable(fileModel);
 		
-		//table.setDefaultRenderer(File.class, new ActionRenderer());
-		
 		table.setPreferredScrollableViewportSize(new Dimension(700, 150));
         table.setFillsViewportHeight(true);
 		
@@ -56,23 +54,23 @@ public class Main {
 		
 		chooser.setMultiSelectionEnabled(true);
 		
-		JButton addFile = new JButton("Add file");
+		JButton addFile = new JButton("Add file to");
 		JButton destroyFile = new JButton("Destroy selected files");
 		
 		user.addFileListener(new FileProxyListener.Adapter() {
 			@Override
 			public void uploadStart(File file) {
-				System.out.println("upload start " + file);
+				fileModel.fileUpdated(file);
 			}
 
 			@Override
 			public void uploadEnd(File file) {
-				System.out.println("upload end " + file);
+				fileModel.fileUpdated(file);
 			}
 
 			@Override
 			public void download(File file, boolean increment) {
-				System.out.println("download " + file);
+				fileModel.fileUpdated(file);
 			}
 		});
 		
@@ -104,8 +102,8 @@ public class Main {
 				int[] selected = table.getSelectedRows();
 				File[] files = new File[selected.length];
 				
-				for(int i : selected) {
-					files[i] = fileModel.getFile(i);
+				for(int i = 0; i < files.length; i++) {
+					files[i] = fileModel.getFile(selected[i]);
 				}
 				
 				for(File file : files) {
@@ -135,93 +133,11 @@ public class Main {
 				window.setVisible(true);
 			}
 		});
-		
-		/*java.io.File f = new java.io.File("tmp/mastodon.mp3");
-		Map<String, String> headers = new HashMap<String, String>();
-		
-		headers.put("Content-Length", String.valueOf(f.length()));
-		
-		InputStream in = new ProgressInputStream(new FileInputStream(f), new ProgressListener() {
-			@Override
-			public void start() {
-				System.out.println("Started");
-			}
-			
-			@Override
-			public void progress(long progress, int percent) {
-				System.out.println("Progress " + progress + " " + percent);
-			}
-			
-			@Override
-			public void end() {
-				System.out.println("Ended");
-			}
-		}, f.length());
-		
-		Helper.URL_CLIENT.request("PUT", "http://192.168.0.13:8080", 
-				new HashMap<String, String>(), in, headers);*/
-		
-		/*User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
-		
-		user.connect();
-		
-		Share share = user.createShare("My Share");
-		
-		for(int i = 1; i <= 3; i++) {
-			java.io.File f = new java.io.File(String.format("tmp/m%s.mp3", i));
-			final File file = share.createFile(f.getName());
-			
-			file.addListener(new FileListener.Adapter() {
-				@Override
-				public void download() {
-					System.out.println(file.getFileid() + " Downlaoded");
-				}
-
-				@Override
-				public void uploadStart() {
-					System.out.println(file.getFileid() + " Started");
-				}
-
-				@Override
-				public void uploadProgress(long progress, int percent) {
-					System.out.println(file.getFileid() + " Progress " + progress +  " -> " + percent);
-				}
-
-				@Override
-				public void uploadEnd() {
-					System.out.println(file.getFileid() + " Ended");
-				}
-			});
-			
-			file.upload(f);
-		}
-		
-		/*final File file = share.createFile("m.wmv");
-		
-		file.addListener(new FileListener.Adapter() {
-
-			@Override
-			public void uploadStart() {
-				System.out.println(file.getFileid() + " - " + file.getFilename() + " Started");
-			}
-
-			@Override
-			public void uploadProgress(long progress, int percent) {
-				System.out.println(file.getFileid() + " Progress " + progress +  " -> " + percent);
-			}
-
-			@Override
-			public void uploadEnd() {
-				System.out.println(file.getFileid() + " Ended");
-			}
-		});
-		
-		file.upload(new java.io.File("tmp/r (1).wmv"));*/
 	}
 	
 	static class FileTableModel extends AbstractTableModel {
 		private static final String[] FIELDS = {
-			"Filename", "Readystate", "Downloads", "Created"
+			"Filename", "State", "Downloads", "Created"
 		};
 
 		private List<File> files;
@@ -229,6 +145,20 @@ public class Main {
 		public void setFiles(List<File> files) {
 			this.files = files;
 			fireTableDataChanged();
+		}
+		
+		public void fileUpdated(File file) {
+			if(files == null) {
+				return;
+			}
+			
+			int i = files.indexOf(file);
+			
+			if(i < 0) {
+				return;
+			}
+			
+			fireTableRowsUpdated(i, i);
 		}
 		
 		public void removeFile(File file) {
@@ -269,8 +199,6 @@ public class Main {
 				return file.getDownloads();
 			case 3:
 				return file.getCreated();
-			//case 4:
-			//	return file;
 			}
 			
 			return null;
@@ -280,43 +208,5 @@ public class Main {
 		public String getColumnName(int column) {
 			return FIELDS[column];
 		}
-
-		@Override
-		public Class<?> getColumnClass(int columnIndex) {
-			if(columnIndex == FIELDS.length - 1) {
-				return File.class;
-			}
-			
-			return super.getColumnClass(columnIndex);
-		}
 	}
-	
-	/*static class ActionRenderer implements TableCellRenderer {
-		@Override
-		public Component getTableCellRendererComponent(final JTable table,
-				Object value, boolean isSelected, boolean hasFocus, int row,
-				int column) {
-			
-			final File file = (File) value;
-			
-			JButton destroy = new JButton("Destroy");
-			
-			destroy.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					try {
-						file.destroy();
-					} catch (IOException e1) {
-						return;
-					}
-					
-					FileTableModel model = (FileTableModel) table.getModel();
-					
-					model.removeFile(file);
-				}
-			});
-			
-			return destroy;
-		}
-	}*/
 }
