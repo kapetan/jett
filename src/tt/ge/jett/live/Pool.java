@@ -14,7 +14,7 @@ import tt.ge.jett.rest.FileListener;
 import tt.ge.jett.rest.Share;
 
 public class Pool {
-	private static final int MAX_WORKERS = 2;
+	private static final int MAX_WORKERS = 5;
 	private static final Logger LOGGER = Logger.getLogger(Pool.class.getName());
 	
 	private PriorityBlockingQueue<UploadTask> tasks;
