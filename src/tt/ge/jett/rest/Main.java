@@ -40,7 +40,7 @@ public class Main {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {}
 		
-		final User user = User.login("mirza+test@ge.tt", "x17980", "trkkx27wybbo3whfrp8gf9l2jll3di");
+		final User user = User.login("", "", "");
 		
 		user.connect();
 		
